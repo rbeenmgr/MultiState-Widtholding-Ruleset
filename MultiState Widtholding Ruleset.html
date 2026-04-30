@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symmetry STE - Multi-State SIT Withholding Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* General Animation Styles */
+        .anim-node {
+            transition: all 0.4s ease;
+        }
+
+        .node-active {
+            border-color: #3b82f6 !important;
+            color: #1e40af !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+            opacity: 1 !important;
+            z-index: 20;
+        }
+
+        .anim-bucket {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bucket-active {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            opacity: 1 !important;
+            filter: grayscale(0) !important;
+        }
+
+        .anim-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke 0.3s ease;
+        }
+
+        .path-active {
+            stroke: #3b82f6 !important;
+            animation: drawPath 0.8s ease-in-out forwards;
+            opacity: 1 !important;
+        }
+
+        @keyframes drawPath {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Inner Flowchart Specifics */
+        .inner-path-active {
+            stroke: #4f46e5 !important;
+            animation: drawPath 0.6s ease-in-out forwards;
+            opacity: 1 !important;
+            filter: grayscale(0) !important;
+        }
+
+        .inner-node-active {
+            border-color: #4f46e5 !important;
+            color: #312e81 !important;
+            background-color: #e0e7ff !important;
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            opacity: 1 !important;
+            filter: grayscale(0) !important;
+        }
+
+        .inner-final-active {
+            border-color: #16a34a !important;
+            color: #14532d !important;
+            background-color: #dcfce7 !important;
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+            opacity: 1 !important;
+            filter: grayscale(0) !important;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">STE Multi-State Withholding Simulator</h1>
+            </div>
+            <div class="text-sm text-slate-500 font-medium hidden sm:block">Symmetry Software Ruleset</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Sidebar: Controls -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-blue-500">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        Configuration Parameters
+                    </h2>
+
+                    <div class="space-y-5">
+                        <!-- Location Selection -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">🏠 Resident State</label>
+                                <select id="residentState"
+                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-colors">
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">🏭 Work State</label>
+                                <select id="workState"
+                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-colors">
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Nexus & Certificates -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Nexus in Resident
+                                    State</label>
+                                <div class="flex flex-col gap-2">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="nexusToggle" value="auto"
+                                            class="text-blue-600 focus:ring-blue-500" checked>
+                                        <span class="ml-2 text-sm text-slate-600">Auto (True if Res == Work)</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="nexusToggle" value="true"
+                                            class="text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-slate-600">Force TRUE</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="nexusToggle" value="false"
+                                            class="text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-slate-600">Force FALSE</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Nonresident
+                                    Certificate</label>
+                                <select id="nonResCert"
+                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm">
+                                    <option value="false">No certificate on file</option>
+                                    <option value="true">Has Nonresident Certificate</option>
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1">Exempts from work state withholding if
+                                    reciprocal.</p>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Desired Outcome & Overrides -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Desired Tax
+                                    Jurisdiction</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label
+                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
+                                        <input type="radio" name="desiredJuris" value="resident"
+                                            class="text-blue-600 focus:ring-blue-500" checked>
+                                        <span class="ml-2 text-xs font-medium text-slate-700">Resident Only</span>
+                                    </label>
+                                    <label
+                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
+                                        <input type="radio" name="desiredJuris" value="work"
+                                            class="text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-xs font-medium text-slate-700">Work Only</span>
+                                    </label>
+                                    <label
+                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
+                                        <input type="radio" name="desiredJuris" value="both"
+                                            class="text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-xs font-medium text-slate-700">Both States</span>
+                                    </label>
+                                    <label
+                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
+                                        <input type="radio" name="desiredJuris" value="none"
+                                            class="text-blue-600 focus:ring-blue-500">
+                                        <span class="ml-2 text-xs font-medium text-slate-700">None</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">State Calculation
+                                    Override</label>
+                                <select id="calcOverride"
+                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm">
+                                    <option value="reset">Default (Respects Rules)</option>
+                                    <option value="all">Force "All"</option>
+                                    <option value="allWithNoCredit">Force "All with No Credit"</option>
+                                    <option value="difference">Force "Difference"</option>
+                                    <option value="full">Force "Full"</option>
+                                    <option value="none">Force "None"</option>
+                                    <option value="residentonly">Resident Only (Work = 0)</option>
+                                    <option value="nonresidentonly">Non-Resident Only (Res = 0)</option>
+                                    <option value="zeroinboth">Zero in Both</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button id="simulateBtn"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mt-4 text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M5 12l5 5l10 -10" />
+                            </svg>
+                            <span>Run Animated Simulation</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Area: Results & Flowchart -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+
+                <!-- Visual Flowchart (Animated SVG) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 overflow-hidden">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-indigo-500">
+                            <path d="M6 3v18" />
+                            <path d="M18 3v18" />
+                            <path d="M6 10h12" />
+                            <path d="M6 14h12" />
+                        </svg>
+                        Logic Flow Execution
+                    </h2>
+                    <p class="text-sm text-slate-500 mb-6">Visualizing the path based on Symmetry Software rules.</p>
+
+                    <div class="w-full overflow-x-auto relative pb-4">
+                        <!-- Top Level Flowchart -->
+                        <svg viewBox="0 0 800 360" class="w-full min-w-[700px] h-auto drop-shadow-sm">
+                            <!-- LINES -->
+                            <path id="path-start-recip" class="anim-path" d="M 400 40 L 400 80" stroke="#e2e8f0"
+                                stroke-width="4" fill="none" />
+
+                            <path id="path-recip-yes" class="anim-path" d="M 400 120 L 400 145 L 200 145 L 200 180"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="300" y="135" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">YES</text>
+
+                            <path id="path-recip-no" class="anim-path" d="M 400 120 L 400 145 L 600 145 L 600 180"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="500" y="135" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">NO</text>
+
+                            <path id="path-nexus1-yes" class="anim-path" d="M 200 220 L 200 245 L 100 245 L 100 280"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="150" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">YES</text>
+
+                            <path id="path-nexus1-no" class="anim-path" d="M 200 220 L 200 245 L 300 245 L 300 280"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="250" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">NO</text>
+
+                            <path id="path-nexus2-yes" class="anim-path" d="M 600 220 L 600 245 L 500 245 L 500 280"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="550" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">YES</text>
+
+                            <path id="path-nexus2-no" class="anim-path" d="M 600 220 L 600 245 L 700 245 L 700 280"
+                                stroke="#e2e8f0" stroke-width="4" fill="none" />
+                            <text x="650" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                                font-family="sans-serif">NO</text>
+
+                            <!-- NODES -->
+                            <foreignObject x="300" y="0" width="200" height="40">
+                                <div id="node-start"
+                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide">
+                                    Determine the work state
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="250" y="80" width="300" height="40">
+                                <div id="node-recip"
+                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide">
+                                    Resident state has reciprocal agreement?
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="100" y="180" width="200" height="40">
+                                <div id="node-nexus1"
+                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center">
+                                    Nexus exists in resident state?
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="500" y="180" width="200" height="40">
+                                <div id="node-nexus2"
+                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center">
+                                    Nexus exists in resident state?
+                                </div>
+                            </foreignObject>
+
+                            <!-- COLORED BUCKETS -->
+                            <foreignObject x="10" y="280" width="180" height="70">
+                                <div id="box-recip-nexus"
+                                    class="anim-bucket opacity-40 grayscale bg-amber-50 border-amber-300 text-amber-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    Reciprocal Agreement;<br>Nexus
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="210" y="280" width="180" height="70">
+                                <div id="box-recip-nonexus"
+                                    class="anim-bucket opacity-40 grayscale bg-emerald-50 border-emerald-300 text-emerald-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    Reciprocal Agreement;<br>No Nexus
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="410" y="280" width="180" height="70">
+                                <div id="box-norecip-nexus"
+                                    class="anim-bucket opacity-40 grayscale bg-sky-50 border-sky-300 text-sky-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    No Reciprocal Agreement;<br>Nexus
+                                </div>
+                            </foreignObject>
+
+                            <foreignObject x="610" y="280" width="180" height="70">
+                                <div id="box-norecip-nonexus"
+                                    class="anim-bucket opacity-40 grayscale bg-rose-50 border-rose-300 text-rose-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    No Reciprocal Agreement;<br>No Nexus
+                                </div>
+                            </foreignObject>
+                        </svg>
+                    </div>
+
+                    <!-- Inner Logic Execution Output (Dynamic SVG injected here) -->
+                    <div id="inner-logic-panel"
+                        class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-5 min-h-[120px] hidden transition-opacity duration-500">
+                        <h3
+                            class="text-xs font-bold text-indigo-600 mb-4 border-b border-indigo-100 pb-2 uppercase tracking-widest flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            Inner Workflow Simulation
+                        </h3>
+
+                        <!-- Text status if overriden/skipped -->
+                        <div id="inner-text-status" class="hidden text-sm font-mono text-slate-600 mb-2"></div>
+
+                        <!-- Dynamic SVG Box -->
+                        <div id="inner-svg-container" class="w-full overflow-x-auto">
+                            <!-- SVG is generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 opacity-0 transition-opacity duration-700"
+                    id="final-results-panel">
+                    <div class="flex justify-between items-start mb-6">
+                        <h2 class="text-xl font-bold text-slate-800">Final Withholding Determination</h2>
+                        <div id="jurisdictionResult"
+                            class="px-3 py-1 rounded-full text-sm font-bold bg-slate-100 text-slate-500">
+                            Awaiting...
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Resident State Card -->
+                        <div id="resCard" class="rounded-lg border-2 border-slate-100 p-4 transition-colors">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+                                    <span class="text-xl">🏠</span> Resident State: <span id="resNameOut">--</span>
+                                </h3>
+                                <span id="resBadge"
+                                    class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
+                            </div>
+                            <div class="space-y-1 text-sm text-slate-600">
+                                <p>Withholds Tax: <strong id="resWithholdsOut" class="text-slate-800">--</strong></p>
+                                <p>Calculation Type: <span id="resCalcTypeOut"
+                                        class="inline-block bg-slate-100 px-1.5 rounded text-slate-700 font-mono text-xs">--</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Work State Card -->
+                        <div id="workCard" class="rounded-lg border-2 border-slate-100 p-4 transition-colors">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+                                    <span class="text-xl">🏭</span> Work State: <span id="workNameOut">--</span>
+                                </h3>
+                                <span id="workBadge"
+                                    class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
+                            </div>
+                            <div class="space-y-1 text-sm text-slate-600">
+                                <p>Withholds Tax: <strong id="workWithholdsOut" class="text-slate-800">--</strong></p>
+                                <p>Reciprocal w/ Res: <span id="workRecipOut"
+                                        class="text-slate-700 font-medium">--</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 1. STATE DATABASE
+        const stateMaster = {
+            "AL": { name: "Alabama", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "AK": { name: "Alaska", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "AZ": { name: "Arizona", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "AR": { name: "Arkansas", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "CA": { name: "California", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["AZ"] },
+            "CO": { name: "Colorado", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "CT": { name: "Connecticut", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "DE": { name: "Delaware", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "DC": { name: "District of Columbia", hasTax: true, withholdsNonres: false, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All with No Credit", reciprocal: ["MD", "VA"] },
+            "FL": { name: "Florida", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "GA": { name: "Georgia", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "HI": { name: "Hawaii", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: [] },
+            "ID": { name: "Idaho", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "Full", reciprocal: [] },
+            "IL": { name: "Illinois", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IA", "KY", "MI", "WI"] },
+            "IN": { name: "Indiana", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["KY", "MI", "OH", "PA", "WI"] },
+            "IA": { name: "Iowa", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IL"] },
+            "KS": { name: "Kansas", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "KY": { name: "Kentucky", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["IL", "IN", "MI", "OH", "VA", "WV", "WI"] },
+            "LA": { name: "Louisiana", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "ME": { name: "Maine", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
+            "MD": { name: "Maryland", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["DC", "PA", "VA", "WV"] },
+            "MA": { name: "Massachusetts", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "MI": { name: "Michigan", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["IL", "IN", "KY", "MN", "OH", "WI"] },
+            "MN": { name: "Minnesota", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["MI", "ND"] },
+            "MS": { name: "Mississippi", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "MO": { name: "Missouri", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
+            "MT": { name: "Montana", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: ["ND"] },
+            "NE": { name: "Nebraska", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "NV": { name: "Nevada", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "NH": { name: "New Hampshire", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "NJ": { name: "New Jersey", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["PA"] },
+            "NM": { name: "New Mexico", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "NY": { name: "New York", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "NC": { name: "North Carolina", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "ND": { name: "North Dakota", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["MN", "MT"] },
+            "OH": { name: "Ohio", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["IN", "KY", "MI", "PA", "WV"] },
+            "OK": { name: "Oklahoma", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "OR": { name: "Oregon", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["AZ"] },
+            "PA": { name: "Pennsylvania", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["IN", "MD", "NJ", "OH", "VA", "WV"] },
+            "RI": { name: "Rhode Island", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "SC": { name: "South Carolina", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "SD": { name: "South Dakota", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "TN": { name: "Tennessee", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "TX": { name: "Texas", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "UT": { name: "Utah", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
+            "VT": { name: "Vermont", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "VA": { name: "Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: ["DC", "KY", "MD", "PA", "WV"] },
+            "WA": { name: "Washington", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "WV": { name: "West Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: ["KY", "MD", "OH", "PA", "VA"] },
+            "WI": { name: "Wisconsin", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IL", "IN", "KY", "MI"] },
+            "WY": { name: "Wyoming", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] }
+        };
+
+        // Inner Flowchart Tree Definitions (Coordinate/Map setup)
+        const innerFlowchartsData = {
+            'recip-nexus': {
+                width: 1100, height: 380,
+                nodes: [
+                    { id: 'n1', text: 'Nonresident certificate\nin work state?', x: 350, y: 0, w: 200, h: 50 },
+                    { id: 'n2', text: 'Do not withhold in work.\nMove wages to resident.', x: 100, y: 120, w: 200, h: 50, final: true },
+                    { id: 'n3', text: 'Work state withholds\non nonresidents?', x: 600, y: 120, w: 200, h: 50 },
+                    { id: 'n4', text: 'Resident state withholds\nif work state...?', x: 400, y: 220, w: 200, h: 50 },
+                    { id: 'n5', text: 'Resident state withholds\non out-of-state wages?', x: 800, y: 220, w: 200, h: 50 },
+                    { id: 'n6', text: 'Withhold in work state.\nResident state withholds.', x: 300, y: 320, w: 180, h: 50, final: true },
+                    { id: 'n7', text: 'Withhold in work state.\nResident does NOT withhold.', x: 500, y: 320, w: 180, h: 50, final: true },
+                    { id: 'n8', text: 'Do not withhold in work.\nResident state withholds.', x: 700, y: 320, w: 180, h: 50, final: true },
+                    { id: 'n9', text: 'Neither state withholds.', x: 900, y: 320, w: 180, h: 50, final: true }
+                ],
+                links: [
+                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n3', to: 'n4', label: 'YES' }, { from: 'n3', to: 'n5', label: 'NO' },
+                    { from: 'n4', to: 'n6', label: 'YES' }, { from: 'n4', to: 'n7', label: 'NO' },
+                    { from: 'n5', to: 'n8', label: 'YES' }, { from: 'n5', to: 'n9', label: 'NO' }
+                ]
+            },
+            'recip-nonexus': {
+                width: 900, height: 280,
+                nodes: [
+                    { id: 'n1', text: 'Nonresident certificate\nin work state?', x: 350, y: 0, w: 200, h: 50 },
+                    { id: 'n2', text: 'Neither state withholds.\n(Nexus required to use cert)', x: 150, y: 100, w: 200, h: 50, final: true },
+                    { id: 'n3', text: 'Work state withholds\non nonresidents?', x: 550, y: 100, w: 200, h: 50 },
+                    { id: 'n4', text: 'Withhold in work state.\nResident does NOT withhold.', x: 400, y: 200, w: 200, h: 50, final: true },
+                    { id: 'n5', text: 'Neither state withholds.', x: 700, y: 200, w: 200, h: 50, final: true }
+                ],
+                links: [
+                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n3', to: 'n4', label: 'YES' }, { from: 'n3', to: 'n5', label: 'NO' }
+                ]
+            },
+            'norecip-nexus': {
+                width: 1100, height: 380,
+                nodes: [
+                    { id: 'n1', text: 'Work state withholds\non nonresidents?', x: 450, y: 0, w: 200, h: 50 },
+                    { id: 'n2', text: 'Resident state withholds\non out-of-state wages?', x: 250, y: 100, w: 200, h: 50 },
+                    { id: 'n3', text: 'Resident state withholds\non out-of-state wages?', x: 650, y: 100, w: 200, h: 50 },
+                    { id: 'n4', text: 'Withhold in work state.\nResident state withholds.', x: 100, y: 200, w: 200, h: 50, final: true },
+                    { id: 'n5', text: 'Withhold in work state.\nResident does NOT withhold.', x: 350, y: 200, w: 200, h: 50, final: true },
+                    { id: 'n6', text: 'Resident state withholds if\nNO withholding in work?', x: 650, y: 200, w: 200, h: 50 },
+                    { id: 'n7', text: 'Neither state withholds.', x: 900, y: 200, w: 180, h: 50, final: true },
+                    { id: 'n8', text: 'Do not withhold in work.\nResident state withholds.', x: 500, y: 300, w: 200, h: 50, final: true },
+                    { id: 'n9', text: 'Neither state withholds.', x: 800, y: 300, w: 180, h: 50, final: true }
+                ],
+                links: [
+                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n2', to: 'n4', label: 'YES' }, { from: 'n2', to: 'n5', label: 'NO' },
+                    { from: 'n3', to: 'n6', label: 'YES' }, { from: 'n3', to: 'n7', label: 'NO' },
+                    { from: 'n6', to: 'n8', label: 'YES' }, { from: 'n6', to: 'n9', label: 'NO' }
+                ]
+            },
+            'norecip-nonexus': {
+                width: 700, height: 180,
+                nodes: [
+                    { id: 'n1', text: 'Work state withholds\non nonresidents?', x: 250, y: 0, w: 200, h: 50 },
+                    { id: 'n2', text: 'Withhold in work state.\nResident does NOT withhold.', x: 100, y: 100, w: 200, h: 50, final: true },
+                    { id: 'n3', text: 'Neither state withholds.', x: 400, y: 100, w: 200, h: 50, final: true }
+                ],
+                links: [
+                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' }
+                ]
+            }
+        };
+
+        // Form Initialization
+        const resSelect = document.getElementById('residentState');
+        const workSelect = document.getElementById('workState');
+
+        Object.keys(stateMaster).sort().forEach(code => {
+            const label = `${code} - ${stateMaster[code].name}`;
+            resSelect.add(new Option(label, code));
+            workSelect.add(new Option(label, code));
+        });
+        resSelect.value = "IL"; workSelect.value = "MI";
+
+        // SVG Generator for Inner Box
+        function generateInnerSVG(bucketId) {
+            const data = innerFlowchartsData[bucketId];
+            if (!data) return '';
+
+            let pathsHTML = '';
+            let nodesHTML = '';
+
+            data.links.forEach(link => {
+                const fromNode = data.nodes.find(n => n.id === link.from);
+                const toNode = data.nodes.find(n => n.id === link.to);
+
+                const startX = fromNode.x + fromNode.w / 2;
+                const startY = fromNode.y + fromNode.h;
+                const endX = toNode.x + toNode.w / 2;
+                const endY = toNode.y;
+                const midY = startY + (endY - startY) / 2; // Bend exactly in middle
+
+                pathsHTML += `
+                    <path id="l-${link.from}-${link.to}" class="inner-path opacity-20 grayscale" 
+                          d="M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}" 
+                          stroke="#94a3b8" stroke-width="3" fill="none" />
+                    <rect x="${(startX + endX) / 2 - 15}" y="${midY - 10}" width="30" height="16" fill="white" rx="4" />
+                    <text x="${(startX + endX) / 2}" y="${midY + 2}" fill="#64748b" font-size="10" font-weight="bold" text-anchor="middle">${link.label}</text>
+                `;
+            });
+
+            data.nodes.forEach(n => {
+                const bg = n.final ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-300';
+                nodesHTML += `
+                    <foreignObject x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}">
+                        <div id="${n.id}" class="anim-node opacity-40 grayscale ${bg} w-full h-full flex items-center justify-center border-2 rounded-lg text-xs font-medium text-center px-2 leading-tight text-slate-600 shadow-sm">
+                            ${n.text.replace(/\n/g, '<br>')}
+                        </div>
+                    </foreignObject>
+                `;
+            });
+
+            return `<svg viewBox="0 0 ${data.width} ${data.height}" class="w-full h-auto min-w-[${data.width}px] drop-shadow-sm">${pathsHTML}${nodesHTML}</svg>`;
+        }
+
+        // Logic Engine
+        function calculateWorkflow(resCode, workCode, nexusInput, hasNonResCertStr, override, desiredJuris) {
+            const resData = stateMaster[resCode];
+            const workData = stateMaster[workCode];
+
+            let resWithholds = false;
+            let workWithholds = false;
+            let finalCalcType = resData.calcType;
+            let animPath = ['node-start'];
+
+            let innerBucket = null;
+            let innerPath = [];
+            let overrideMsg = null;
+
+            const hasNonResCert = hasNonResCertStr === 'true';
+            let nexus = (nexusInput === 'auto') ? (resCode === workCode) : (nexusInput === 'true');
+
+            // Quick bypass
+            if (["residentonly", "nonresidentonly", "zeroinboth"].includes(override)) {
+                overrideMsg = `[OVERRIDE] Setup skipped due to manual state calc override: ${override}`;
+                if (override === "residentonly") resWithholds = true;
+                if (override === "nonresidentonly") workWithholds = true;
+                return buildPayload(resWithholds, workWithholds, "None", animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+            }
+
+            if (resCode === workCode) {
+                overrideMsg = "Resident state and Work state are identical. Standard single-state rule applies. Inner flowchart skipped.";
+                return buildPayload(false, workData.hasTax, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+            }
+
+            // Top level traversal
+            animPath.push('path-start-recip', 'node-recip');
+            const hasRecip = resData.reciprocal.includes(workCode);
+
+            if (hasRecip) {
+                animPath.push('path-recip-yes', 'node-nexus1');
+                if (nexus) {
+                    animPath.push('path-nexus1-yes', 'box-recip-nexus');
+                    innerBucket = 'recip-nexus';
+                    innerPath.push('n1');
+
+                    if (hasNonResCert) {
+                        innerPath.push('l-n1-n2', 'n2');
+                        workWithholds = false; resWithholds = true;
+                    } else {
+                        innerPath.push('l-n1-n3', 'n3');
+                        if (workData.withholdsNonres) {
+                            innerPath.push('l-n3-n4', 'n4');
+                            if (resData.withholdsOutState) {
+                                innerPath.push('l-n4-n6', 'n6');
+                                workWithholds = true; resWithholds = true;
+                            } else {
+                                innerPath.push('l-n4-n7', 'n7');
+                                workWithholds = true; resWithholds = false;
+                            }
+                        } else {
+                            innerPath.push('l-n3-n5', 'n5');
+                            workWithholds = false;
+                            if (resData.withholdsOutState) {
+                                innerPath.push('l-n5-n8', 'n8');
+                                resWithholds = true;
+                            } else {
+                                innerPath.push('l-n5-n9', 'n9');
+                                resWithholds = false;
+                            }
+                        }
+                    }
+                } else {
+                    animPath.push('path-nexus1-no', 'box-recip-nonexus');
+                    innerBucket = 'recip-nonexus';
+                    innerPath.push('n1');
+
+                    if (hasNonResCert) {
+                        innerPath.push('l-n1-n2', 'n2');
+                        workWithholds = false; resWithholds = false;
+                    } else {
+                        innerPath.push('l-n1-n3', 'n3');
+                        if (workData.withholdsNonres) {
+                            innerPath.push('l-n3-n4', 'n4');
+                            workWithholds = true; resWithholds = false;
+                        } else {
+                            innerPath.push('l-n3-n5', 'n5');
+                            workWithholds = false; resWithholds = false;
+                        }
+                    }
+                }
+            } else {
+                animPath.push('path-recip-no', 'node-nexus2');
+                if (nexus) {
+                    animPath.push('path-nexus2-yes', 'box-norecip-nexus');
+                    innerBucket = 'norecip-nexus';
+                    innerPath.push('n1');
+
+                    if (workData.withholdsNonres) {
+                        innerPath.push('l-n1-n2', 'n2');
+                        workWithholds = true;
+                        if (resData.withholdsOutState) {
+                            innerPath.push('l-n2-n4', 'n4');
+                            resWithholds = true;
+                        } else {
+                            innerPath.push('l-n2-n5', 'n5');
+                            resWithholds = false;
+                        }
+                    } else {
+                        innerPath.push('l-n1-n3', 'n3');
+                        workWithholds = false;
+                        if (resData.withholdsOutState) {
+                            innerPath.push('l-n3-n6', 'n6');
+                            if (resData.withholdsIfNoWork) {
+                                innerPath.push('l-n6-n8', 'n8');
+                                resWithholds = true;
+                            } else {
+                                innerPath.push('l-n6-n9', 'n9');
+                                resWithholds = false;
+                            }
+                        } else {
+                            innerPath.push('l-n3-n7', 'n7');
+                            resWithholds = false;
+                        }
+                    }
+                } else {
+                    animPath.push('path-nexus2-no', 'box-norecip-nonexus');
+                    innerBucket = 'norecip-nonexus';
+                    innerPath.push('n1');
+
+                    if (workData.withholdsNonres) {
+                        innerPath.push('l-n1-n2', 'n2');
+                        workWithholds = true; resWithholds = false;
+                    } else {
+                        innerPath.push('l-n1-n3', 'n3');
+                        workWithholds = false; resWithholds = false;
+                    }
+                }
+            }
+
+            // Calculation overrides
+            if (["all", "allWithNoCredit", "difference", "full", "none"].includes(override)) {
+                finalCalcType = override === 'allWithNoCredit' ? 'All with No Credit' : override.charAt(0).toUpperCase() + override.slice(1);
+            }
+
+            // Tax limits
+            if (!resData.hasTax) resWithholds = false;
+            if (!workData.hasTax) workWithholds = false;
+
+            return buildPayload(resWithholds, workWithholds, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+        }
+
+        function buildPayload(resW, workW, calc, aPath, iBucket, iPath, oMsg, rCode, wCode, desiredJuris) {
+            let actualJuris = "none";
+            if (resW && workW) actualJuris = "both";
+            else if (resW) actualJuris = "resident";
+            else if (workW) actualJuris = "work";
+
+            return {
+                resWithholds: resW, workWithholds: workW, calcType: calc,
+                animationPath: aPath, innerBucket: iBucket, innerPath: iPath, overrideMsg: oMsg,
+                rCode: rCode, wCode: wCode,
+                isPossible: (actualJuris === desiredJuris), actualJuris: actualJuris
+            };
+        }
+
+        // Animation Engine
+        let isAnimating = false;
+        async function runSimulation() {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            const resCode = document.getElementById('residentState').value;
+            const workCode = document.getElementById('workState').value;
+            const nexus = document.querySelector('input[name="nexusToggle"]:checked').value;
+            const cert = document.getElementById('nonResCert').value;
+            const desired = document.querySelector('input[name="desiredJuris"]:checked').value;
+            const override = document.getElementById('calcOverride').value;
+            const btn = document.getElementById('simulateBtn');
+
+            const result = calculateWorkflow(resCode, workCode, nexus, cert, override, desired);
+
+            // 1. Reset UI
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Simulating...`;
+            btn.disabled = true;
+            document.getElementById('final-results-panel').classList.add('opacity-0');
+            document.getElementById('inner-logic-panel').classList.add('hidden');
+
+            // Clear top SVG
+            document.querySelectorAll('.anim-node').forEach(el => {
+                el.className = 'anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide';
+            });
+            document.querySelectorAll('.anim-bucket').forEach(el => {
+                const bClass = Array.from(el.classList).filter(c => !['bucket-active', 'opacity-100', 'grayscale-0'].includes(c)).join(' ');
+                el.className = bClass + ' opacity-40 grayscale';
+            });
+            document.querySelectorAll('.anim-path').forEach(el => el.classList.remove('path-active'));
+
+            await new Promise(r => setTimeout(r, 300));
+
+            // 2. Animate Top Level 
+            for (const id of result.animationPath) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+
+                if (el.tagName === 'path') {
+                    el.classList.add('path-active');
+                } else if (el.classList.contains('anim-bucket')) {
+                    el.classList.remove('opacity-40', 'grayscale');
+                    el.classList.add('bucket-active', 'opacity-100', 'grayscale-0');
+                } else {
+                    el.classList.remove('opacity-50', 'border-slate-300', 'text-slate-500');
+                    el.classList.add('node-active');
+                }
+                await new Promise(r => setTimeout(r, 450));
+            }
+
+            // 3. Animate Inner Logic
+            document.getElementById('inner-logic-panel').classList.remove('hidden');
+            const innerSvgBox = document.getElementById('inner-svg-container');
+            const innerTextStatus = document.getElementById('inner-text-status');
+
+            if (result.innerBucket) {
+                innerTextStatus.classList.add('hidden');
+                innerSvgBox.innerHTML = generateInnerSVG(result.innerBucket);
+
+                // Animate Inner Paths/Nodes
+                for (const innerId of result.innerPath) {
+                    await new Promise(r => setTimeout(r, 500));
+                    const innerEl = document.getElementById(innerId);
+                    if (!innerEl) continue;
+
+                    if (innerEl.tagName === 'path') {
+                        innerEl.classList.add('inner-path-active');
+                    } else {
+                        // Check if it's a final node
+                        const isFinal = innerFlowchartsData[result.innerBucket].nodes.find(n => n.id === innerId).final;
+                        innerEl.classList.remove('opacity-40', 'grayscale', 'border-slate-300', 'bg-white', 'bg-slate-100');
+                        innerEl.classList.add(isFinal ? 'inner-final-active' : 'inner-node-active');
+                    }
+                }
+                await new Promise(r => setTimeout(r, 400));
+            } else {
+                innerSvgBox.innerHTML = '';
+                innerTextStatus.textContent = result.overrideMsg || "Inner Logic skipped.";
+                innerTextStatus.classList.remove('hidden');
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            // 4. Reveal Final Output Data
+            document.getElementById('resNameOut').textContent = stateMaster[resCode].name;
+            document.getElementById('workNameOut').textContent = stateMaster[workCode].name;
+
+            const resWText = document.getElementById('resWithholdsOut');
+            resWText.textContent = result.resWithholds ? "YES" : "NO";
+            resWText.className = result.resWithholds ? "text-red-600 font-bold" : "text-green-600 font-bold";
+
+            const workWText = document.getElementById('workWithholdsOut');
+            workWText.textContent = result.workWithholds ? "YES" : "NO";
+            workWText.className = result.workWithholds ? "text-red-600 font-bold" : "text-green-600 font-bold";
+
+            document.getElementById('resCalcTypeOut').textContent = result.resWithholds ? result.calcType : "N/A";
+            document.getElementById('workRecipOut').textContent = stateMaster[resCode].reciprocal.includes(workCode) ? "YES" : "NO";
+
+            document.getElementById('resCard').className = `rounded-lg border-2 p-4 transition-colors ${result.resWithholds ? 'border-red-200 bg-red-50/30' : 'border-slate-100'}`;
+            document.getElementById('workCard').className = `rounded-lg border-2 p-4 transition-colors ${result.workWithholds ? 'border-red-200 bg-red-50/30' : 'border-slate-100'}`;
+
+            document.getElementById('resBadge').textContent = result.resWithholds ? "Withholding Applies" : "Exempt / No Tax";
+            document.getElementById('resBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.resWithholds ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            document.getElementById('workBadge').textContent = result.workWithholds ? "Withholding Applies" : "Exempt / No Tax";
+            document.getElementById('workBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.workWithholds ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+
+            const jurisBanner = document.getElementById('jurisdictionResult');
+            if (result.isPossible) {
+                jurisBanner.textContent = `✓ Desired Jurisdiction MATCHED`;
+                jurisBanner.className = "px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700 border border-green-200 shadow-sm";
+            } else {
+                jurisBanner.textContent = `✗ Expected: ${result.actualJuris.toUpperCase()} (Mismatch)`;
+                jurisBanner.className = "px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-700 border border-amber-200 shadow-sm";
+            }
+
+            document.getElementById('final-results-panel').classList.remove('opacity-0');
+
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg><span>Run Animated Simulation</span>`;
+            btn.disabled = false;
+            isAnimating = false;
+        }
+
+        document.getElementById('simulateBtn').addEventListener('click', runSimulation);
+
+    </script>
+</body>
+
+</html>
