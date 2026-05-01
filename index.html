@@ -37,7 +37,7 @@
 
         /* General Animation Styles */
         .anim-node {
-            transition: all 0.4s ease;
+            transition: all 0.2s ease;
         }
 
         .node-active {
@@ -51,7 +51,7 @@
         }
 
         .anim-bucket {
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .bucket-active {
@@ -64,12 +64,12 @@
         .anim-path {
             stroke-dasharray: 1000;
             stroke-dashoffset: 1000;
-            transition: stroke 0.3s ease;
+            transition: stroke 0.2s ease;
         }
 
         .path-active {
             stroke: #3b82f6 !important;
-            animation: drawPath 0.8s ease-in-out forwards;
+            animation: drawPath 0.4s ease-in-out forwards;
             opacity: 1 !important;
         }
 
@@ -82,7 +82,7 @@
         /* Inner Flowchart Specifics */
         .inner-path-active {
             stroke: #4f46e5 !important;
-            animation: drawPath 0.6s ease-in-out forwards;
+            animation: drawPath 0.3s ease-in-out forwards;
             opacity: 1 !important;
             filter: grayscale(0) !important;
         }
@@ -386,7 +386,7 @@
 
                     <!-- Inner Logic Execution Output (Dynamic SVG injected here) -->
                     <div id="inner-logic-panel"
-                        class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-5 min-h-[120px] hidden transition-opacity duration-500">
+                        class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-5 min-h-[120px] hidden transition-opacity duration-300">
                         <h3
                             class="text-xs font-bold text-indigo-600 mb-4 border-b border-indigo-100 pb-2 uppercase tracking-widest flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -409,7 +409,7 @@
                 </div>
 
                 <!-- Results Panel -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 opacity-0 transition-opacity duration-700"
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 opacity-0 transition-opacity duration-300"
                     id="final-results-panel">
                     <div class="flex justify-between items-start mb-6">
                         <h2 class="text-xl font-bold text-slate-800">Final Withholding Determination</h2>
@@ -831,7 +831,7 @@
             });
             document.querySelectorAll('.anim-path').forEach(el => el.classList.remove('path-active'));
 
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 100));
 
             // 2. Animate Top Level 
             for (const id of result.animationPath) {
@@ -847,7 +847,7 @@
                     el.classList.remove('opacity-50', 'border-slate-300', 'text-slate-500');
                     el.classList.add('node-active');
                 }
-                await new Promise(r => setTimeout(r, 450));
+                await new Promise(r => setTimeout(r, 200));
             }
 
             // 3. Animate Inner Logic
@@ -861,7 +861,7 @@
 
                 // Animate Inner Paths/Nodes
                 for (const innerId of result.innerPath) {
-                    await new Promise(r => setTimeout(r, 500));
+                    await new Promise(r => setTimeout(r, 200));
                     const innerEl = document.getElementById(innerId);
                     if (!innerEl) continue;
 
@@ -874,12 +874,12 @@
                         innerEl.classList.add(isFinal ? 'inner-final-active' : 'inner-node-active');
                     }
                 }
-                await new Promise(r => setTimeout(r, 400));
+                await new Promise(r => setTimeout(r, 150));
             } else {
                 innerSvgBox.innerHTML = '';
                 innerTextStatus.textContent = result.overrideMsg || "Inner Logic skipped.";
                 innerTextStatus.classList.remove('hidden');
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 200));
             }
 
             // 4. Reveal Final Output Data
