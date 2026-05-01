@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-State SIT Withholding Simulator</title>
+    <title>Multi-State Withholding Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -123,7 +123,7 @@
                 </div>
                 <h1 class="text-xl font-bold text-slate-800">Multi-State Withholding Simulator</h1>
             </div>
-            <div class="text-sm text-slate-500 font-medium hidden sm:block">Multi-State SIT Withholding Ruleset</div>
+            <div class="text-sm text-slate-500 font-medium hidden sm:block">Standard Ruleset</div>
         </div>
     </header>
 
@@ -285,100 +285,99 @@
                         </svg>
                         Logic Flow Execution
                     </h2>
-                    <p class="text-sm text-slate-500 mb-6">Visualizing the path based on Multi-State SIT Withholding
-                        rules.</p>
+                    <p class="text-sm text-slate-500 mb-6">Visualizing the path based on standard withholding rules.</p>
 
                     <div class="w-full overflow-x-auto relative pb-4">
                         <!-- Top Level Flowchart -->
-                        <svg viewBox="0 0 800 360" class="w-full min-w-[700px] h-auto drop-shadow-sm">
+                        <svg viewBox="0 0 800 430" class="w-full min-w-[700px] h-auto drop-shadow-sm">
                             <!-- LINES -->
-                            <path id="path-start-recip" class="anim-path" d="M 400 40 L 400 80" stroke="#e2e8f0"
+                            <path id="path-start-recip" class="anim-path" d="M 400 50 L 400 90" stroke="#e2e8f0"
                                 stroke-width="4" fill="none" />
 
-                            <path id="path-recip-yes" class="anim-path" d="M 400 120 L 400 145 L 200 145 L 200 180"
+                            <path id="path-recip-yes" class="anim-path" d="M 400 150 L 400 185 L 200 185 L 200 220"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="300" y="135" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="300" y="178" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
-                            <path id="path-recip-no" class="anim-path" d="M 400 120 L 400 145 L 600 145 L 600 180"
+                            <path id="path-recip-no" class="anim-path" d="M 400 150 L 400 185 L 600 185 L 600 220"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="500" y="135" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="500" y="178" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
-                            <path id="path-nexus1-yes" class="anim-path" d="M 200 220 L 200 245 L 100 245 L 100 280"
+                            <path id="path-nexus1-yes" class="anim-path" d="M 200 280 L 200 315 L 100 315 L 100 350"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="150" y="235" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="150" y="308" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
-                            <path id="path-nexus1-no" class="anim-path" d="M 200 220 L 200 245 L 300 245 L 300 280"
+                            <path id="path-nexus1-no" class="anim-path" d="M 200 280 L 200 315 L 300 315 L 300 350"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="250" y="235" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="250" y="308" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
-                            <path id="path-nexus2-yes" class="anim-path" d="M 600 220 L 600 245 L 500 245 L 500 280"
+                            <path id="path-nexus2-yes" class="anim-path" d="M 600 280 L 600 315 L 500 315 L 500 350"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="550" y="235" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="550" y="308" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
-                            <path id="path-nexus2-no" class="anim-path" d="M 600 220 L 600 245 L 700 245 L 700 280"
+                            <path id="path-nexus2-no" class="anim-path" d="M 600 280 L 600 315 L 700 315 L 700 350"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="650" y="235" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="650" y="308" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
                             <!-- NODES -->
-                            <foreignObject x="300" y="0" width="200" height="40">
+                            <foreignObject x="300" y="0" width="200" height="50">
                                 <div id="node-start"
-                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide">
+                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
                                     Determine the work state
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="250" y="80" width="300" height="40">
+                            <foreignObject x="250" y="90" width="300" height="60">
                                 <div id="node-recip"
-                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide">
+                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
                                     Resident state has reciprocal agreement?
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="100" y="180" width="200" height="40">
+                            <foreignObject x="100" y="220" width="200" height="60">
                                 <div id="node-nexus1"
-                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center">
+                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
                                     Nexus exists in resident state?
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="500" y="180" width="200" height="40">
+                            <foreignObject x="500" y="220" width="200" height="60">
                                 <div id="node-nexus2"
-                                    class="anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center">
+                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
                                     Nexus exists in resident state?
                                 </div>
                             </foreignObject>
 
                             <!-- COLORED BUCKETS -->
-                            <foreignObject x="10" y="280" width="180" height="70">
+                            <foreignObject x="10" y="350" width="180" height="70">
                                 <div id="box-recip-nexus"
-                                    class="anim-bucket opacity-40 grayscale bg-amber-50 border-amber-300 text-amber-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    class="anim-bucket opacity-40 grayscale bg-amber-50 border-amber-300 text-amber-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
                                     Reciprocal Agreement;<br>Nexus
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="210" y="280" width="180" height="70">
+                            <foreignObject x="210" y="350" width="180" height="70">
                                 <div id="box-recip-nonexus"
-                                    class="anim-bucket opacity-40 grayscale bg-emerald-50 border-emerald-300 text-emerald-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    class="anim-bucket opacity-40 grayscale bg-emerald-50 border-emerald-300 text-emerald-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
                                     Reciprocal Agreement;<br>No Nexus
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="410" y="280" width="180" height="70">
+                            <foreignObject x="410" y="350" width="180" height="70">
                                 <div id="box-norecip-nexus"
-                                    class="anim-bucket opacity-40 grayscale bg-sky-50 border-sky-300 text-sky-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    class="anim-bucket opacity-40 grayscale bg-sky-50 border-sky-300 text-sky-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
                                     No Reciprocal Agreement;<br>Nexus
                                 </div>
                             </foreignObject>
 
-                            <foreignObject x="610" y="280" width="180" height="70">
+                            <foreignObject x="610" y="350" width="180" height="70">
                                 <div id="box-norecip-nonexus"
-                                    class="anim-bucket opacity-40 grayscale bg-rose-50 border-rose-300 text-rose-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm">
+                                    class="anim-bucket opacity-40 grayscale bg-rose-50 border-rose-300 text-rose-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
                                     No Reciprocal Agreement;<br>No Nexus
                                 </div>
                             </foreignObject>
@@ -824,7 +823,7 @@
 
             // Clear top SVG
             document.querySelectorAll('.anim-node').forEach(el => {
-                el.className = 'anim-node opacity-50 border-slate-300 text-slate-500 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide';
+                el.className = 'anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2';
             });
             document.querySelectorAll('.anim-bucket').forEach(el => {
                 const bClass = Array.from(el.classList).filter(c => !['bucket-active', 'opacity-100', 'grayscale-0'].includes(c)).join(' ');
