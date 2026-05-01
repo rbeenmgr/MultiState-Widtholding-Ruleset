@@ -296,32 +296,32 @@
 
                             <path id="path-recip-yes" class="anim-path" d="M 400 120 L 400 145 L 200 145 L 200 180"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="300" y="135" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="300" y="135" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
                             <path id="path-recip-no" class="anim-path" d="M 400 120 L 400 145 L 600 145 L 600 180"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="500" y="135" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="500" y="135" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
                             <path id="path-nexus1-yes" class="anim-path" d="M 200 220 L 200 245 L 100 245 L 100 280"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="150" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="150" y="235" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
                             <path id="path-nexus1-no" class="anim-path" d="M 200 220 L 200 245 L 300 245 L 300 280"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="250" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="250" y="235" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
                             <path id="path-nexus2-yes" class="anim-path" d="M 600 220 L 600 245 L 500 245 L 500 280"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="550" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="550" y="235" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">YES</text>
 
                             <path id="path-nexus2-no" class="anim-path" d="M 600 220 L 600 245 L 700 245 L 700 280"
                                 stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="650" y="235" fill="#94a3b8" font-size="12" font-weight="bold" text-anchor="middle"
+                            <text x="650" y="235" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
                                 font-family="sans-serif">NO</text>
 
                             <!-- NODES -->
@@ -613,12 +613,14 @@
                 const endY = toNode.y;
                 const midY = startY + (endY - startY) / 2; // Bend exactly in middle
 
+                const labelColor = link.label === 'YES' ? '#16a34a' : (link.label === 'NO' ? '#dc2626' : '#64748b');
+
                 pathsHTML += `
                     <path id="l-${link.from}-${link.to}" class="inner-path opacity-20 grayscale" 
                           d="M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}" 
                           stroke="#94a3b8" stroke-width="3" fill="none" />
                     <rect x="${(startX + endX) / 2 - 15}" y="${midY - 10}" width="30" height="16" fill="white" rx="4" />
-                    <text x="${(startX + endX) / 2}" y="${midY + 2}" fill="#64748b" font-size="10" font-weight="bold" text-anchor="middle">${link.label}</text>
+                    <text x="${(startX + endX) / 2}" y="${midY + 2}" fill="${labelColor}" font-size="10" font-weight="bold" text-anchor="middle">${link.label}</text>
                 `;
             });
 
@@ -886,22 +888,22 @@
 
             const resWText = document.getElementById('resWithholdsOut');
             resWText.textContent = result.resWithholds ? "YES" : "NO";
-            resWText.className = result.resWithholds ? "text-red-600 font-bold" : "text-green-600 font-bold";
+            resWText.className = result.resWithholds ? "text-green-600 font-bold" : "text-red-600 font-bold";
 
             const workWText = document.getElementById('workWithholdsOut');
             workWText.textContent = result.workWithholds ? "YES" : "NO";
-            workWText.className = result.workWithholds ? "text-red-600 font-bold" : "text-green-600 font-bold";
+            workWText.className = result.workWithholds ? "text-green-600 font-bold" : "text-red-600 font-bold";
 
             document.getElementById('resCalcTypeOut').textContent = result.resWithholds ? result.calcType : "N/A";
             document.getElementById('workRecipOut').textContent = stateMaster[resCode].reciprocal.includes(workCode) ? "YES" : "NO";
 
-            document.getElementById('resCard').className = `rounded-lg border-2 p-4 transition-colors ${result.resWithholds ? 'border-red-200 bg-red-50/30' : 'border-slate-100'}`;
-            document.getElementById('workCard').className = `rounded-lg border-2 p-4 transition-colors ${result.workWithholds ? 'border-red-200 bg-red-50/30' : 'border-slate-100'}`;
+            document.getElementById('resCard').className = `rounded-lg border-2 p-4 transition-colors ${result.resWithholds ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`;
+            document.getElementById('workCard').className = `rounded-lg border-2 p-4 transition-colors ${result.workWithholds ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`;
 
             document.getElementById('resBadge').textContent = result.resWithholds ? "Withholding Applies" : "Exempt / No Tax";
-            document.getElementById('resBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.resWithholds ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            document.getElementById('resBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.resWithholds ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
             document.getElementById('workBadge').textContent = result.workWithholds ? "Withholding Applies" : "Exempt / No Tax";
-            document.getElementById('workBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.workWithholds ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            document.getElementById('workBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.workWithholds ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
 
             const jurisBanner = document.getElementById('jurisdictionResult');
             if (result.isPossible) {
