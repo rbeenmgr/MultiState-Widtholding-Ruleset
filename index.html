@@ -4,15 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-State Withholding Simulator</title>
+    <title>Multi-State Withholding Simulator & Ruleset Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             color: #0f172a;
+        }
+
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
         }
 
         /* Custom scrollbar */
@@ -22,7 +26,7 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f1f5f9;
             border-radius: 4px;
         }
 
@@ -35,17 +39,56 @@
             background: #94a3b8;
         }
 
-        /* General Animation Styles */
+        /* Radio selection custom styling */
+        .custom-radio-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+        .custom-radio-card:hover {
+            border-color: #94a3b8;
+        }
+
+        /* Nexus specific active themes */
+        .nexus-card-auto.selected {
+            border-color: #2563eb !important;
+            background-color: #eff6ff !important;
+            color: #1e40af !important;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3) !important;
+        }
+        .nexus-card-true.selected {
+            border-color: #059669 !important;
+            background-color: #ecfdf5 !important;
+            color: #065f46 !important;
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.3) !important;
+        }
+        .nexus-card-false.selected {
+            border-color: #e11d48 !important;
+            background-color: #fff1f2 !important;
+            color: #9f1239 !important;
+            box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.3) !important;
+        }
+
+        /* Desired Jurisdiction active theme */
+        .juris-card.selected {
+            border-color: #4f46e5 !important;
+            background-color: #eef2ff !important;
+            color: #312e81 !important;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3) !important;
+        }
+
+        /* Animation Styles */
         .anim-node {
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .node-active {
-            border-color: #3b82f6 !important;
-            color: #1e40af !important;
+            border-color: #2563eb !important;
+            color: #1e3a8a !important;
             background-color: #eff6ff !important;
-            transform: scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+            transform: scale(1.04);
+            box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.25);
             opacity: 1 !important;
             z-index: 20;
         }
@@ -55,8 +98,8 @@
         }
 
         .bucket-active {
-            transform: scale(1.05) translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: scale(1.04) translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             opacity: 1 !important;
             filter: grayscale(0) !important;
         }
@@ -64,12 +107,12 @@
         .anim-path {
             stroke-dasharray: 1000;
             stroke-dashoffset: 1000;
-            transition: stroke 0.2s ease;
+            transition: stroke 0.25s ease;
         }
 
         .path-active {
-            stroke: #3b82f6 !important;
-            animation: drawPath 0.4s ease-in-out forwards;
+            stroke: #2563eb !important;
+            animation: drawPath 0.35s ease-in-out forwards;
             opacity: 1 !important;
         }
 
@@ -79,7 +122,6 @@
             }
         }
 
-        /* Inner Flowchart Specifics */
         .inner-path-active {
             stroke: #4f46e5 !important;
             animation: drawPath 0.3s ease-in-out forwards;
@@ -91,8 +133,8 @@
             border-color: #4f46e5 !important;
             color: #312e81 !important;
             background-color: #e0e7ff !important;
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            transform: scale(1.04);
+            box-shadow: 0 6px 12px -2px rgba(79, 70, 229, 0.2);
             opacity: 1 !important;
             filter: grayscale(0) !important;
         }
@@ -101,382 +143,526 @@
             border-color: #16a34a !important;
             color: #14532d !important;
             background-color: #dcfce7 !important;
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+            transform: scale(1.04);
+            box-shadow: 0 6px 12px -2px rgba(22, 163, 74, 0.25);
             opacity: 1 !important;
             filter: grayscale(0) !important;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col bg-slate-50 overflow-x-hidden">
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
 
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
         <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                <div class="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="M7 15h0M2 9.5h20M7 12h0" />
                     </svg>
                 </div>
-                <h1 class="text-xl font-bold text-slate-800">Multi-State Withholding Simulator</h1>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Multi-State SIT Withholding Simulator</h1>
+                    <p class="text-xs text-slate-500 font-medium">Validated against Symmetry Tax Engine (STE) Ruleset Specification</p>
+                </div>
             </div>
-            <div class="text-sm text-slate-500 font-medium hidden sm:block">Standard Ruleset</div>
+            <div class="flex items-center gap-2">
+                <button id="openReferenceModalBtn"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                        <path d="M6 6h10" /><path d="M6 10h10" />
+                    </svg>
+                    <span>Table of Variables</span>
+                </button>
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200 hidden md:inline-flex">
+                    STE Release 2024+
+                </span>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main App Layout -->
     <div class="flex-grow flex w-full relative items-start">
 
         <!-- Left Sidebar: Controls -->
-        <aside id="sidebarColumn" class="w-80 lg:w-[400px] flex-shrink-0 bg-white border-r border-slate-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto transition-all duration-300 origin-left z-20">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+        <aside id="sidebarColumn"
+            class="w-80 lg:w-[420px] flex-shrink-0 bg-white border-r border-slate-200 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto transition-all duration-300 origin-left z-30 shadow-xs">
+            <div class="p-5 sm:p-6 space-y-6">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="text-blue-500">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M12 16v-4" />
-                            <path d="M12 8h.01" />
+                            class="text-blue-600">
+                            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" />
+                            <line x1="17" y1="16" x2="23" y2="16" />
                         </svg>
-                        Configuration
+                        Scenario Parameters
                     </h2>
-                    <button id="collapseSidebarBtn" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors" title="Hide Parameters">
+                    <button id="collapseSidebarBtn" class="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" title="Hide Parameters">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
                 </div>
 
-                <div class="space-y-5">
-                        <!-- Location Selection -->
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">🏠 Resident State</label>
-                                <select id="residentState"
-                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-colors">
-                                    <!-- Populated via JS -->
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">🏭 Work State</label>
-                                <select id="workState"
-                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-colors">
-                                    <!-- Populated via JS -->
-                                </select>
-                            </div>
-                        </div>
+                <!-- State Selection -->
+                <div class="space-y-3">
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <label class="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1">🏠 Resident State (isResident = true)</label>
+                        <select id="residentState"
+                            class="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 shadow-xs text-sm font-medium focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-100 transition-colors">
+                            <!-- Populated via JS -->
+                        </select>
+                        <div id="resStateSummary" class="text-xs text-slate-500 mt-1 font-mono-code">--</div>
+                    </div>
 
-                        <hr class="border-slate-100">
-
-                        <!-- Nexus & Certificates -->
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Nexus in Resident
-                                    State</label>
-                                <div class="flex flex-col gap-2">
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="nexusToggle" value="auto"
-                                            class="text-blue-600 focus:ring-blue-500" checked>
-                                        <span class="ml-2 text-sm text-slate-600">Auto (True if Res == Work)</span>
-                                    </label>
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="nexusToggle" value="true"
-                                            class="text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm text-slate-600">Force TRUE</span>
-                                    </label>
-                                    <label class="inline-flex items-center">
-                                        <input type="radio" name="nexusToggle" value="false"
-                                            class="text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm text-slate-600">Force FALSE</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Nonresident
-                                    Certificate</label>
-                                <select id="nonResCert"
-                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm">
-                                    <option value="false">No certificate on file</option>
-                                    <option value="true">Has Nonresident Certificate</option>
-                                </select>
-                                <p class="text-xs text-slate-500 mt-1">Exempts from work state withholding if
-                                    reciprocal.</p>
-                            </div>
-                        </div>
-
-                        <hr class="border-slate-100">
-
-                        <!-- Desired Outcome & Overrides -->
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Desired Tax
-                                    Jurisdiction</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label
-                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
-                                        <input type="radio" name="desiredJuris" value="resident"
-                                            class="text-blue-600 focus:ring-blue-500" checked>
-                                        <span class="ml-2 text-xs font-medium text-slate-700">Resident Only</span>
-                                    </label>
-                                    <label
-                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
-                                        <input type="radio" name="desiredJuris" value="work"
-                                            class="text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-xs font-medium text-slate-700">Work Only</span>
-                                    </label>
-                                    <label
-                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
-                                        <input type="radio" name="desiredJuris" value="both"
-                                            class="text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-xs font-medium text-slate-700">Both States</span>
-                                    </label>
-                                    <label
-                                        class="inline-flex items-center bg-slate-50 p-2 rounded border border-slate-200 cursor-pointer hover:bg-slate-100">
-                                        <input type="radio" name="desiredJuris" value="none"
-                                            class="text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-xs font-medium text-slate-700">None</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">State Calculation
-                                    Override</label>
-                                <select id="calcOverride"
-                                    class="w-full rounded-md border border-slate-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm">
-                                    <option value="reset">Default (Respects Rules)</option>
-                                    <option value="all">Force "All"</option>
-                                    <option value="allWithNoCredit">Force "All with No Credit"</option>
-                                    <option value="difference">Force "Difference"</option>
-                                    <option value="full">Force "Full"</option>
-                                    <option value="none">Force "None"</option>
-                                    <option value="residentonly">Resident Only (Work = 0)</option>
-                                    <option value="nonresidentonly">Non-Resident Only (Res = 0)</option>
-                                    <option value="zeroinboth">Zero in Both</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button id="simulateBtn"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mt-4 text-base">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M5 12l5 5l10 -10" />
-                            </svg>
-                            <span>Run Animated Simulation</span>
-                        </button>
+                    <div class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                        <label class="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">🏭 Work State (Nonresident Work Location)</label>
+                        <select id="workState"
+                            class="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 shadow-xs text-sm font-medium focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-100 transition-colors">
+                            <!-- Populated via JS -->
+                        </select>
+                        <div id="workStateSummary" class="text-xs text-slate-500 mt-1 font-mono-code">--</div>
                     </div>
                 </div>
+
+                <!-- Reciprocity Badge Preview -->
+                <div id="reciprocityPreviewBadge" class="p-3 rounded-xl border text-xs font-medium flex items-center justify-between">
+                    <span>Reciprocal Agreement Status:</span>
+                    <span id="recipStatusTag" class="px-2.5 py-0.5 rounded-full text-xs font-bold">Checking...</span>
+                </div>
+
+                <!-- Statutory Rule Notice Container (Kansas / Illinois / AZ) -->
+                <div id="specialStatutoryAlert" class="hidden p-3 rounded-xl text-xs border space-y-1"></div>
+
+                <!-- Nexus Selection (With distinct color themes) -->
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Resident State Nexus</label>
+                            <span class="text-[11px] text-slate-400 font-mono-code">nexus</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2" id="nexusRadioGroup">
+                            <label class="custom-radio-card nexus-card-auto flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-slate-200 bg-white text-center text-xs font-semibold">
+                                <input type="radio" name="nexusToggle" value="auto" class="sr-only" checked>
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="indicator-dot w-3 h-3 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                                    <span class="label-title">Auto</span>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-normal sub-text">Res == Work</span>
+                            </label>
+                            <label class="custom-radio-card nexus-card-true flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-slate-200 bg-white text-center text-xs font-semibold">
+                                <input type="radio" name="nexusToggle" value="true" class="sr-only">
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="indicator-dot w-3 h-3 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                                    <span class="label-title">True</span>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-normal sub-text">Nexus Exists</span>
+                            </label>
+                            <label class="custom-radio-card nexus-card-false flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-slate-200 bg-white text-center text-xs font-semibold">
+                                <input type="radio" name="nexusToggle" value="false" class="sr-only">
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="indicator-dot w-3 h-3 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                                    <span class="label-title">False</span>
+                                </div>
+                                <span class="text-[10px] text-slate-500 font-normal sub-text">No Nexus</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Nonresident Certificate on File</label>
+                            <span class="text-[11px] text-slate-400 font-mono-code">hasNonResCertificate</span>
+                        </div>
+                        <select id="nonResCert"
+                            class="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 shadow-xs text-sm font-medium focus:border-blue-500 focus:outline-hidden text-slate-700 transition-colors">
+                            <option value="false">False (No Certificate on File)</option>
+                            <option value="true">True (Nonresident Certificate on File)</option>
+                        </select>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-tight">Exempts withholding in reciprocal work states (e.g. VA Form VA-4, IL Form IL-W-5-NR).</p>
+                    </div>
+                </div>
+
+                <!-- Overrides & Desired Outcomes -->
+                <div class="space-y-4 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">STE State Calculation Override</label>
+                        <select id="calcOverride"
+                            class="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 shadow-xs text-sm font-medium focus:border-blue-500 focus:outline-hidden text-slate-700 transition-colors">
+                            <option value="reset">reset (Default - Follows State Ruleset)</option>
+                            <option value="all">all (Force "All" Calculation)</option>
+                            <option value="allWithNoCredit">allWithNoCredit (Force "All with No Credit")</option>
+                            <option value="difference">difference (Force "Difference")</option>
+                            <option value="differencedeprecated">differencedeprecated (Legacy Pre-2022 Difference)</option>
+                            <option value="full">full (Force "Full" Calculation)</option>
+                            <option value="none">none (Force "None" Calculation)</option>
+                            <option value="residentonly">residentonly (Force Resident Only - Work Tax = $0)</option>
+                            <option value="nonresidentonly">nonresidentonly (Force Work Only - Resident Tax = $0)</option>
+                            <option value="zeroinboth">zeroinboth (Zero Tax in Both States)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Target Desired Jurisdiction</label>
+                        <div class="grid grid-cols-2 gap-2 text-xs" id="jurisRadioGroup">
+                            <label class="custom-radio-card juris-card flex items-center justify-between p-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                                <input type="radio" name="desiredJuris" value="resident" class="sr-only" checked>
+                                <span class="font-semibold text-slate-800 label-title">Resident Only</span>
+                                <span class="indicator-dot w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                            </label>
+                            <label class="custom-radio-card juris-card flex items-center justify-between p-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                                <input type="radio" name="desiredJuris" value="work" class="sr-only">
+                                <span class="font-semibold text-slate-800 label-title">Work Only</span>
+                                <span class="indicator-dot w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                            </label>
+                            <label class="custom-radio-card juris-card flex items-center justify-between p-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                                <input type="radio" name="desiredJuris" value="both" class="sr-only">
+                                <span class="font-semibold text-slate-800 label-title">Both States</span>
+                                <span class="indicator-dot w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                            </label>
+                            <label class="custom-radio-card juris-card flex items-center justify-between p-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                                <input type="radio" name="desiredJuris" value="none" class="sr-only">
+                                <span class="font-semibold text-slate-800 label-title">Neither (None)</span>
+                                <span class="indicator-dot w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Action Button -->
+                <button id="simulateBtn"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-98">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Run Animated Simulation</span>
+                </button>
+            </div>
         </aside>
 
-        <!-- Right Area: Results & Flowchart -->
-        <main id="mainColumn" class="flex-grow p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto transition-all duration-300 min-w-0">
-            <div class="flex flex-col gap-6">
-                
-                <!-- Expand Parameters Button (Hidden by default) -->
-                <div class="flex items-center -mb-2">
-                    <button id="expandSidebarBtn" class="hidden flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                        Show Configuration Parameters
-                    </button>
-                </div>
+        <!-- Right Main Viewport: Execution Flow, Results & Numeric Calculator -->
+        <main id="mainColumn" class="flex-grow p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto transition-all duration-300 min-w-0 space-y-6">
 
-                <!-- Visual Flowchart (Animated SVG) -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 overflow-hidden">
-                    <h2 class="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="text-indigo-500">
-                            <path d="M6 3v18" />
-                            <path d="M18 3v18" />
-                            <path d="M6 10h12" />
-                            <path d="M6 14h12" />
-                        </svg>
-                        Logic Flow Execution
-                    </h2>
-                    <p class="text-sm text-slate-500 mb-6">Visualizing the path based on standard withholding rules.</p>
-
-                    <div class="w-full overflow-x-auto relative pb-4">
-                        <!-- Top Level Flowchart -->
-                        <svg viewBox="0 0 800 430" class="w-full min-w-[700px] h-auto drop-shadow-sm">
-                            <!-- LINES -->
-                            <path id="path-start-recip" class="anim-path" d="M 400 50 L 400 90" stroke="#e2e8f0"
-                                stroke-width="4" fill="none" />
-
-                            <path id="path-recip-yes" class="anim-path" d="M 400 150 L 400 185 L 200 185 L 200 220"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="300" y="178" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">YES</text>
-
-                            <path id="path-recip-no" class="anim-path" d="M 400 150 L 400 185 L 600 185 L 600 220"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="500" y="178" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">NO</text>
-
-                            <path id="path-nexus1-yes" class="anim-path" d="M 200 280 L 200 315 L 100 315 L 100 350"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="150" y="308" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">YES</text>
-
-                            <path id="path-nexus1-no" class="anim-path" d="M 200 280 L 200 315 L 300 315 L 300 350"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="250" y="308" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">NO</text>
-
-                            <path id="path-nexus2-yes" class="anim-path" d="M 600 280 L 600 315 L 500 315 L 500 350"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="550" y="308" fill="#16a34a" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">YES</text>
-
-                            <path id="path-nexus2-no" class="anim-path" d="M 600 280 L 600 315 L 700 315 L 700 350"
-                                stroke="#e2e8f0" stroke-width="4" fill="none" />
-                            <text x="650" y="308" fill="#dc2626" font-size="12" font-weight="bold" text-anchor="middle"
-                                font-family="sans-serif">NO</text>
-
-                            <!-- NODES -->
-                            <foreignObject x="300" y="0" width="200" height="50">
-                                <div id="node-start"
-                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
-                                    Determine the work state
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="250" y="90" width="300" height="60">
-                                <div id="node-recip"
-                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
-                                    Resident state has reciprocal agreement?
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="100" y="220" width="200" height="60">
-                                <div id="node-nexus1"
-                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
-                                    Nexus exists in resident state?
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="500" y="220" width="200" height="60">
-                                <div id="node-nexus2"
-                                    class="anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2">
-                                    Nexus exists in resident state?
-                                </div>
-                            </foreignObject>
-
-                            <!-- COLORED BUCKETS -->
-                            <foreignObject x="10" y="350" width="180" height="70">
-                                <div id="box-recip-nexus"
-                                    class="anim-bucket opacity-40 grayscale bg-amber-50 border-amber-300 text-amber-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
-                                    Reciprocal Agreement;<br>Nexus
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="210" y="350" width="180" height="70">
-                                <div id="box-recip-nonexus"
-                                    class="anim-bucket opacity-40 grayscale bg-emerald-50 border-emerald-300 text-emerald-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
-                                    Reciprocal Agreement;<br>No Nexus
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="410" y="350" width="180" height="70">
-                                <div id="box-norecip-nexus"
-                                    class="anim-bucket opacity-40 grayscale bg-sky-50 border-sky-300 text-sky-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
-                                    No Reciprocal Agreement;<br>Nexus
-                                </div>
-                            </foreignObject>
-
-                            <foreignObject x="610" y="350" width="180" height="70">
-                                <div id="box-norecip-nonexus"
-                                    class="anim-bucket opacity-40 grayscale bg-rose-50 border-rose-300 text-rose-800 w-full h-full flex items-center justify-center border-2 rounded-xl text-sm font-bold text-center leading-tight shadow-sm p-2">
-                                    No Reciprocal Agreement;<br>No Nexus
-                                </div>
-                            </foreignObject>
-                        </svg>
-                    </div>
-
-                    <!-- Inner Logic Execution Output (Dynamic SVG injected here) -->
-                    <div id="inner-logic-panel"
-                        class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-5 min-h-[120px] hidden transition-opacity duration-300">
-                        <h3
-                            class="text-xs font-bold text-indigo-600 mb-4 border-b border-indigo-100 pb-2 uppercase tracking-widest flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                            </svg>
-                            Inner Workflow Simulation
-                        </h3>
-
-                        <!-- Text status if overriden/skipped -->
-                        <div id="inner-text-status" class="hidden text-sm font-mono text-slate-600 mb-2"></div>
-
-                        <!-- Dynamic SVG Box -->
-                        <div id="inner-svg-container" class="w-full overflow-x-auto">
-                            <!-- SVG is generated by JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Panel -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 opacity-0 transition-opacity duration-300"
-                    id="final-results-panel">
-                    <div class="flex justify-between items-start mb-6">
-                        <h2 class="text-xl font-bold text-slate-800">Final Withholding Determination</h2>
-                        <div id="jurisdictionResult"
-                            class="px-3 py-1 rounded-full text-sm font-bold bg-slate-100 text-slate-500">
-                            Awaiting...
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Resident State Card -->
-                        <div id="resCard" class="rounded-lg border-2 border-slate-100 p-4 transition-colors">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-semibold text-slate-700 flex items-center gap-2">
-                                    <span class="text-xl">🏠</span> Resident State: <span id="resNameOut">--</span>
-                                </h3>
-                                <span id="resBadge"
-                                    class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
-                            </div>
-                            <div class="space-y-1 text-sm text-slate-600">
-                                <p>Withholds Tax: <strong id="resWithholdsOut" class="text-slate-800">--</strong></p>
-                                <p>Calculation Type: <span id="resCalcTypeOut"
-                                        class="inline-block bg-slate-100 px-1.5 rounded text-slate-700 font-mono text-xs">--</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Work State Card -->
-                        <div id="workCard" class="rounded-lg border-2 border-slate-100 p-4 transition-colors">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-semibold text-slate-700 flex items-center gap-2">
-                                    <span class="text-xl">🏭</span> Work State: <span id="workNameOut">--</span>
-                                </h3>
-                                <span id="workBadge"
-                                    class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
-                            </div>
-                            <div class="space-y-1 text-sm text-slate-600">
-                                <p>Withholds Tax: <strong id="workWithholdsOut" class="text-slate-800">--</strong></p>
-                                <p>Reciprocal w/ Res: <span id="workRecipOut"
-                                        class="text-slate-700 font-medium">--</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+            <!-- Expand Parameters Button (When sidebar collapsed) -->
+            <div class="flex items-center">
+                <button id="expandSidebarBtn"
+                    class="hidden flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <span>Show Scenario Parameters</span>
+                </button>
             </div>
+
+            <!-- Top Flowchart Execution Card -->
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <span id="flowPulseIndicator" class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                            Multi-State Decision Flowchart Execution
+                        </h2>
+                        <p class="text-xs text-slate-500">Tracing live decision path through Symmetry Software master flowchart (PDF pp. 8–10)</p>
+                    </div>
+                    <div id="flowStatusBadge" class="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                        Live Reactive Mode
+                    </div>
+                </div>
+
+                <div class="w-full overflow-x-auto relative pb-2">
+                    <svg viewBox="0 0 820 430" class="w-full min-w-[720px] h-auto drop-shadow-xs">
+                        <!-- Top Lines -->
+                        <path id="path-start-recip" class="anim-path" d="M 410 50 L 410 90" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+
+                        <path id="path-recip-yes" class="anim-path" d="M 410 150 L 410 185 L 205 185 L 205 220" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="290" y="176" width="36" height="18" fill="white" rx="4" />
+                        <text x="308" y="189" fill="#16a34a" font-size="11" font-weight="bold" text-anchor="middle">YES</text>
+
+                        <path id="path-recip-no" class="anim-path" d="M 410 150 L 410 185 L 615 185 L 615 220" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="495" y="176" width="32" height="18" fill="white" rx="4" />
+                        <text x="511" y="189" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">NO</text>
+
+                        <path id="path-nexus1-yes" class="anim-path" d="M 205 280 L 205 315 L 105 315 L 105 350" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="135" y="306" width="36" height="18" fill="white" rx="4" />
+                        <text x="153" y="319" fill="#16a34a" font-size="11" font-weight="bold" text-anchor="middle">YES</text>
+
+                        <path id="path-nexus1-no" class="anim-path" d="M 205 280 L 205 315 L 305 315 L 305 350" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="238" y="306" width="32" height="18" fill="white" rx="4" />
+                        <text x="254" y="319" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">NO</text>
+
+                        <path id="path-nexus2-yes" class="anim-path" d="M 615 280 L 615 315 L 515 315 L 515 350" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="545" y="306" width="36" height="18" fill="white" rx="4" />
+                        <text x="563" y="319" fill="#16a34a" font-size="11" font-weight="bold" text-anchor="middle">YES</text>
+
+                        <path id="path-nexus2-no" class="anim-path" d="M 615 280 L 615 315 L 715 315 L 715 350" stroke="#cbd5e1" stroke-width="3.5" fill="none" />
+                        <rect x="648" y="306" width="32" height="18" fill="white" rx="4" />
+                        <text x="664" y="319" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">NO</text>
+
+                        <!-- Decision Nodes -->
+                        <foreignObject x="305" y="0" width="210" height="50">
+                            <div id="node-start"
+                                class="anim-node opacity-60 border-slate-300 text-slate-700 bg-white w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center p-2 shadow-xs">
+                                <div>Determine Resident & Work State</div>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="255" y="90" width="310" height="60">
+                            <div id="node-recip"
+                                class="anim-node opacity-60 border-slate-300 text-slate-700 bg-white w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center p-2 shadow-xs">
+                                <div>Resident has reciprocal agreement with work state? (Col 7)</div>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="100" y="220" width="210" height="60">
+                            <div id="node-nexus1"
+                                class="anim-node opacity-60 border-slate-300 text-slate-700 bg-white w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center p-2 shadow-xs">
+                                <div>Nexus exists in resident state?</div>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="510" y="220" width="210" height="60">
+                            <div id="node-nexus2"
+                                class="anim-node opacity-60 border-slate-300 text-slate-700 bg-white w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center p-2 shadow-xs">
+                                <div>Nexus exists in resident state?</div>
+                            </div>
+                        </foreignObject>
+
+                        <!-- Sub-Flow Category Buckets -->
+                        <foreignObject x="10" y="350" width="190" height="70">
+                            <div id="box-recip-nexus"
+                                class="anim-bucket opacity-40 grayscale bg-amber-50 border-amber-300 text-amber-900 w-full h-full flex flex-col items-center justify-center border-2 rounded-xl text-xs font-bold text-center leading-tight shadow-xs p-2">
+                                <span>Reciprocal Agreement;<br>Nexus (PDF p. 9)</span>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="210" y="350" width="190" height="70">
+                            <div id="box-recip-nonexus"
+                                class="anim-bucket opacity-40 grayscale bg-emerald-50 border-emerald-300 text-emerald-900 w-full h-full flex flex-col items-center justify-center border-2 rounded-xl text-xs font-bold text-center leading-tight shadow-xs p-2">
+                                <span>Reciprocal Agreement;<br>No Nexus (PDF p. 9)</span>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="420" y="350" width="190" height="70">
+                            <div id="box-norecip-nexus"
+                                class="anim-bucket opacity-40 grayscale bg-sky-50 border-sky-300 text-sky-900 w-full h-full flex flex-col items-center justify-center border-2 rounded-xl text-xs font-bold text-center leading-tight shadow-xs p-2">
+                                <span>No Reciprocal Agreement;<br>Nexus (PDF p. 10)</span>
+                            </div>
+                        </foreignObject>
+
+                        <foreignObject x="620" y="350" width="190" height="70">
+                            <div id="box-norecip-nonexus"
+                                class="anim-bucket opacity-40 grayscale bg-rose-50 border-rose-300 text-rose-900 w-full h-full flex flex-col items-center justify-center border-2 rounded-xl text-xs font-bold text-center leading-tight shadow-xs p-2">
+                                <span>No Reciprocal Agreement;<br>No Nexus (PDF p. 10)</span>
+                            </div>
+                        </foreignObject>
+                    </svg>
+                </div>
+
+                <!-- Sub-Flow Dynamic SVG Display -->
+                <div id="inner-logic-panel"
+                    class="mt-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-5 transition-all duration-300">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                        <h3 class="text-xs font-bold text-indigo-700 uppercase tracking-widest flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <polygon points="10 8 16 12 10 16 10 8" />
+                            </svg>
+                            <span id="innerFlowTitle">Detailed Sub-Tree Execution</span>
+                        </h3>
+                        <span class="text-[11px] text-slate-500 font-medium">Mapped to Columns (3), (4), (5), (6)</span>
+                    </div>
+
+                    <div id="inner-text-status" class="hidden text-xs font-mono-code text-slate-700 bg-white p-3 rounded-lg border border-slate-200 mb-2"></div>
+                    <div id="inner-svg-container" class="w-full overflow-x-auto"></div>
+                </div>
+            </div>
+
+            <!-- Determination Cards Panel -->
+            <div id="final-results-panel" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 transition-opacity duration-300">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Withholding Determination Summary</h2>
+                        <p class="text-xs text-slate-500">Official conclusion derived from Symmetry Multi-State Ruleset</p>
+                    </div>
+                    <div id="jurisdictionResult" class="px-3.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border">
+                        Calculating...
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Resident State Result Card -->
+                    <div id="resCard" class="rounded-xl border-2 border-slate-200 p-5 transition-colors">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span class="text-lg">🏠</span> Resident State: <span id="resNameOut">--</span>
+                            </h3>
+                            <span id="resBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
+                        </div>
+                        <div class="space-y-2 text-xs text-slate-600">
+                            <div class="flex justify-between py-1 border-b border-slate-100">
+                                <span>Withholds Resident Tax:</span>
+                                <strong id="resWithholdsOut" class="text-slate-900">--</strong>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-100">
+                                <span>Applied Calculation Type:</span>
+                                <span id="resCalcTypeOut" class="font-mono-code font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-[11px]">--</span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span>Withholds On Out-of-State Wages (Col 4):</span>
+                                <span id="resOutStateOut" class="font-semibold text-slate-700">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work State Result Card -->
+                    <div id="workCard" class="rounded-xl border-2 border-slate-200 p-5 transition-colors">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span class="text-lg">🏭</span> Work State: <span id="workNameOut">--</span>
+                            </h3>
+                            <span id="workBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">N/A</span>
+                        </div>
+                        <div class="space-y-2 text-xs text-slate-600">
+                            <div class="flex justify-between py-1 border-b border-slate-100">
+                                <span>Withholds Work State Tax:</span>
+                                <strong id="workWithholdsOut" class="text-slate-900">--</strong>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-100">
+                                <span>Reciprocal With Resident:</span>
+                                <span id="workRecipOut" class="font-semibold text-slate-700">--</span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span>Withholds On Nonresidents (Col 3):</span>
+                                <span id="workNonresOut" class="font-semibold text-slate-700">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Notes or Warnings -->
+                <div id="resultActionNotes" class="mt-4 p-3 rounded-lg text-xs bg-slate-50 border border-slate-200 text-slate-700 hidden"></div>
+            </div>
+
+            <!-- Mathematical Tax Calculator Card (PDF pp. 11–16) -->
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-2 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="text-green-600">
+                                <rect x="4" y="2" width="16" height="20" rx="2" />
+                                <line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" />
+                                <path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" />
+                                <path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" />
+                            </svg>
+                            Numeric Tax Dollar Calculation Engine (PDF pp. 11–16)
+                        </h2>
+                        <p class="text-xs text-slate-500">Live mathematical calculation formulas for "All", "All with No Credit", "Difference", "Full", and "None"</p>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                        Interactive Calculator
+                    </span>
+                </div>
+
+                <!-- Input Controls for Calculation -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 mb-6 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Resident State Wages ($)</label>
+                        <input id="calcWageRes" type="number" value="1000" min="0" step="50"
+                            class="w-full rounded-md border border-slate-300 bg-white py-1.5 px-3 font-mono-code focus:border-blue-500 focus:outline-hidden">
+                        <span class="text-[11px] text-slate-400">Earned in resident state</span>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Work State Wages ($)</label>
+                        <input id="calcWageWork" type="number" value="1000" min="0" step="50"
+                            class="w-full rounded-md border border-slate-300 bg-white py-1.5 px-3 font-mono-code focus:border-blue-500 focus:outline-hidden">
+                        <span class="text-[11px] text-slate-400">Earned in nonresident work state</span>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Resident State Effective SIT Rate (%)</label>
+                        <input id="calcRateRes" type="number" value="5.0" min="0" max="20" step="0.1"
+                            class="w-full rounded-md border border-slate-300 bg-white py-1.5 px-3 font-mono-code focus:border-blue-500 focus:outline-hidden">
+                        <span class="text-[11px] text-slate-400">Estimated resident rate</span>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Work State Effective SIT Rate (%)</label>
+                        <input id="calcRateWork" type="number" value="4.25" min="0" max="20" step="0.1"
+                            class="w-full rounded-md border border-slate-300 bg-white py-1.5 px-3 font-mono-code focus:border-blue-500 focus:outline-hidden">
+                        <span class="text-[11px] text-slate-400">Estimated work state rate</span>
+                    </div>
+                </div>
+
+                <!-- Mathematical Steps Breakdown -->
+                <div id="mathStepsContainer" class="space-y-4">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
         </main>
     </div>
 
+    <!-- Modal: Symmetry Master Table of Variables (Columns 1–7) -->
+    <div id="referenceModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                        Symmetry Multi-State Table of Variables (Columns 1–7)
+                    </h3>
+                    <p class="text-xs text-slate-500">Official variable attributes from Symmetry Software Documentation (pp. 3–7)</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input id="modalSearchInput" type="text" placeholder="Filter states..."
+                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:outline-hidden focus:border-blue-500 w-44">
+                    <button id="closeReferenceModalBtn" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-grow overflow-auto p-4">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 text-slate-700 font-bold border-b border-slate-200 z-10">
+                        <tr>
+                            <th class="p-2.5">Code</th>
+                            <th class="p-2.5">State / Territory</th>
+                            <th class="p-2.5 text-center">Has Tax (2)</th>
+                            <th class="p-2.5 text-center">Withholds Nonres (3)</th>
+                            <th class="p-2.5 text-center">Withholds Out-State (4)</th>
+                            <th class="p-2.5 text-center">Withholds If No Work (5)</th>
+                            <th class="p-2.5">Calculation Type (6)</th>
+                            <th class="p-2.5">Reciprocal States (7)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody" class="divide-y divide-slate-100 font-medium text-slate-600">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex justify-between items-center">
+                <span>*Arizona (AZ*): Functions as reciprocal under AZ Form WEC for CA, IN, OR, and VA.</span>
+                <span class="font-semibold">50 States + DC + 5 Territories</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script: Data Engine, Sub-Flow SVG Builders & Math Calculations -->
     <script>
-        // 1. STATE DATABASE
+        // =========================================================================
+        // 1. STATE MASTER DATABASE (Accurately validated against PDF Table of Variables)
+        // =========================================================================
         const stateMaster = {
             "AL": { name: "Alabama", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "AK": { name: "Alaska", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
+            "AS": { name: "American Samoa", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "AZ": { name: "Arizona", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "AR": { name: "Arkansas", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "CA": { name: "California", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["AZ"] },
@@ -486,11 +672,12 @@
             "DC": { name: "District of Columbia", hasTax: true, withholdsNonres: false, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All with No Credit", reciprocal: ["MD", "VA"] },
             "FL": { name: "Florida", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "GA": { name: "Georgia", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "GU": { name: "Guam", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "HI": { name: "Hawaii", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: [] },
-            "ID": { name: "Idaho", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "Full", reciprocal: [] },
+            "ID": { name: "Idaho", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "IL": { name: "Illinois", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IA", "KY", "MI", "WI"] },
-            "IN": { name: "Indiana", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["KY", "MI", "OH", "PA", "WI"] },
-            "IA": { name: "Iowa", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IL"] },
+            "IN": { name: "Indiana", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["AZ", "KY", "MI", "OH", "PA", "WI"] },
+            "IA": { name: "Iowa", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["IL"] },
             "KS": { name: "Kansas", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
             "KY": { name: "Kentucky", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["IL", "IN", "MI", "OH", "VA", "WV", "WI"] },
             "LA": { name: "Louisiana", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
@@ -502,156 +689,122 @@
             "MS": { name: "Mississippi", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "MO": { name: "Missouri", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
             "MT": { name: "Montana", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: ["ND"] },
-            "NE": { name: "Nebraska", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "NE": { name: "Nebraska", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
             "NV": { name: "Nevada", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "NH": { name: "New Hampshire", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "NJ": { name: "New Jersey", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["PA"] },
             "NM": { name: "New Mexico", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
-            "NY": { name: "New York", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "NY": { name: "New York", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
             "NC": { name: "North Carolina", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "ND": { name: "North Dakota", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["MN", "MT"] },
+            "MP": { name: "Northern Mariana Islands", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "OH": { name: "Ohio", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["IN", "KY", "MI", "PA", "WV"] },
             "OK": { name: "Oklahoma", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "OR": { name: "Oregon", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["AZ"] },
             "PA": { name: "Pennsylvania", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: ["IN", "MD", "NJ", "OH", "VA", "WV"] },
-            "RI": { name: "Rhode Island", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
-            "SC": { name: "South Carolina", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "PR": { name: "Puerto Rico", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
+            "RI": { name: "Rhode Island", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "SC": { name: "South Carolina", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
             "SD": { name: "South Dakota", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "TN": { name: "Tennessee", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "TX": { name: "Texas", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
-            "UT": { name: "Utah", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
-            "VT": { name: "Vermont", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: [] },
-            "VA": { name: "Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: ["DC", "KY", "MD", "PA", "WV"] },
+            "UT": { name: "Utah", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: [] },
+            "VT": { name: "Vermont", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: [] },
+            "VA": { name: "Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "All", reciprocal: ["AZ", "DC", "KY", "MD", "PA", "WV"] },
+            "VI": { name: "Virgin Islands", hasTax: true, withholdsNonres: true, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
             "WA": { name: "Washington", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] },
-            "WV": { name: "West Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "None", reciprocal: ["KY", "MD", "OH", "PA", "VA"] },
-            "WI": { name: "Wisconsin", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["IL", "IN", "KY", "MI"] },
+            "WV": { name: "West Virginia", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Difference", reciprocal: ["KY", "MD", "OH", "PA", "VA"] },
+            "WI": { name: "Wisconsin", hasTax: true, withholdsNonres: true, withholdsOutState: true, withholdsIfNoWork: true, calcType: "Full", reciprocal: ["IL", "IN", "KY", "MI"] },
             "WY": { name: "Wyoming", hasTax: false, withholdsNonres: false, withholdsOutState: false, withholdsIfNoWork: false, calcType: "None", reciprocal: [] }
         };
 
-        // Inner Flowchart Tree Definitions (Coordinate/Map setup)
+        // =========================================================================
+        // 2. SUB-FLOWCHART DEFINITIONS (Fidelity to PDF pp. 9-10)
+        // =========================================================================
         const innerFlowchartsData = {
             'recip-nexus': {
-                width: 1100, height: 380,
+                width: 1100, height: 420,
+                title: "Reciprocal Agreement; Nexus Flowchart (PDF p. 9 Top)",
                 nodes: [
-                    { id: 'n1', text: 'Nonresident certificate\nin work state?', x: 350, y: 0, w: 200, h: 50 },
-                    { id: 'n2', text: 'Do not withhold in work.\nMove wages to resident.', x: 100, y: 120, w: 200, h: 50, final: true },
-                    { id: 'n3', text: 'Work state withholds\non nonresidents?', x: 600, y: 120, w: 200, h: 50 },
-                    { id: 'n4', text: 'Resident state withholds\nif work state...?', x: 400, y: 220, w: 200, h: 50 },
-                    { id: 'n5', text: 'Resident state withholds\non out-of-state wages?', x: 800, y: 220, w: 200, h: 50 },
-                    { id: 'n6', text: 'Withhold in work state.\nResident state withholds.', x: 300, y: 320, w: 180, h: 50, final: true },
-                    { id: 'n7', text: 'Withhold in work state.\nResident does NOT withhold.', x: 500, y: 320, w: 180, h: 50, final: true },
-                    { id: 'n8', text: 'Do not withhold in work.\nResident state withholds.', x: 700, y: 320, w: 180, h: 50, final: true },
-                    { id: 'n9', text: 'Neither state withholds.', x: 900, y: 320, w: 180, h: 50, final: true }
+                    { id: 'n1', text: 'Nonresident certificate in work state?\n(hasNonResCertificate)', x: 400, y: 0, w: 220, h: 50 },
+                    { id: 'n2', text: 'Do not withhold in work state.\nMove wages to resident state;\nwithhold in resident state.', x: 100, y: 120, w: 220, h: 60, final: true },
+                    { id: 'n3', text: 'Resident state withholds on\nout-of-state wages? (Col 4)', x: 620, y: 120, w: 220, h: 50 },
+                    { id: 'n4', text: 'Work state withholds on\nnonresidents? (Col 3)', x: 420, y: 220, w: 200, h: 50 },
+                    { id: 'n5', text: 'Resident state withholds if work\nstate does not require withholding? (5)', x: 780, y: 220, w: 220, h: 50 },
+                    { id: 'n6', text: 'Withhold in work state.\nResident state withholds on work wages\n(modified by Calc Type Col 6).', x: 260, y: 340, w: 230, h: 60, final: true },
+                    { id: 'n7', text: 'Withhold in work state.\nResident state does NOT withhold.', x: 520, y: 340, w: 220, h: 60, final: true },
+                    { id: 'n8', text: 'Neither work state nor resident state\nwithhold on work state wages.', x: 780, y: 340, w: 220, h: 60, final: true }
                 ],
                 links: [
-                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
-                    { from: 'n3', to: 'n4', label: 'YES' }, { from: 'n3', to: 'n5', label: 'NO' },
-                    { from: 'n4', to: 'n6', label: 'YES' }, { from: 'n4', to: 'n7', label: 'NO' },
-                    { from: 'n5', to: 'n8', label: 'YES' }, { from: 'n5', to: 'n9', label: 'NO' }
+                    { from: 'n1', to: 'n2', label: 'YES' },
+                    { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n3', to: 'n4', label: 'YES' },
+                    { from: 'n3', to: 'n5', label: 'NO' },
+                    { from: 'n4', to: 'n6', label: 'YES' },
+                    { from: 'n4', to: 'n2', label: 'NO' },
+                    { from: 'n5', to: 'n7', label: 'YES' },
+                    { from: 'n5', to: 'n8', label: 'NO' }
                 ]
             },
             'recip-nonexus': {
-                width: 900, height: 280,
+                width: 900, height: 320,
+                title: "Reciprocal Agreement; No Nexus Flowchart (PDF p. 9 Bottom)",
                 nodes: [
-                    { id: 'n1', text: 'Nonresident certificate\nin work state?', x: 350, y: 0, w: 200, h: 50 },
-                    { id: 'n2', text: 'Neither state withholds.\n(Nexus required to use cert)', x: 150, y: 100, w: 200, h: 50, final: true },
-                    { id: 'n3', text: 'Work state withholds\non nonresidents?', x: 550, y: 100, w: 200, h: 50 },
-                    { id: 'n4', text: 'Withhold in work state.\nResident does NOT withhold.', x: 400, y: 200, w: 200, h: 50, final: true },
-                    { id: 'n5', text: 'Neither state withholds.', x: 700, y: 200, w: 200, h: 50, final: true }
+                    { id: 'n1', text: 'Nonresident certificate in work state?\n(hasNonResCertificate)', x: 340, y: 0, w: 220, h: 50 },
+                    { id: 'n2', text: 'Neither work state nor resident state withhold.\n(Note: Nexus must exist to use certs)', x: 80, y: 120, w: 240, h: 60, final: true },
+                    { id: 'n3', text: 'Work state withholds on\nnonresidents? (Col 3)', x: 550, y: 120, w: 220, h: 50 },
+                    { id: 'n4', text: 'Withhold in work state.\nResident state does NOT withhold.', x: 420, y: 240, w: 220, h: 60, final: true },
+                    { id: 'n5', text: 'Neither work state nor resident state\nwithhold on work state wages.', x: 670, y: 240, w: 220, h: 60, final: true }
                 ],
                 links: [
-                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
-                    { from: 'n3', to: 'n4', label: 'YES' }, { from: 'n3', to: 'n5', label: 'NO' }
+                    { from: 'n1', to: 'n2', label: 'YES' },
+                    { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n3', to: 'n4', label: 'YES' },
+                    { from: 'n3', to: 'n5', label: 'NO' }
                 ]
             },
             'norecip-nexus': {
-                width: 1100, height: 380,
+                width: 1100, height: 420,
+                title: "No Reciprocal Agreement; Nexus Flowchart (PDF p. 10 Top)",
                 nodes: [
-                    { id: 'n1', text: 'Work state withholds\non nonresidents?', x: 450, y: 0, w: 200, h: 50 },
-                    { id: 'n2', text: 'Resident state withholds\non out-of-state wages?', x: 250, y: 100, w: 200, h: 50 },
-                    { id: 'n3', text: 'Resident state withholds\non out-of-state wages?', x: 650, y: 100, w: 200, h: 50 },
-                    { id: 'n4', text: 'Withhold in work state.\nResident state withholds.', x: 100, y: 200, w: 200, h: 50, final: true },
-                    { id: 'n5', text: 'Withhold in work state.\nResident does NOT withhold.', x: 350, y: 200, w: 200, h: 50, final: true },
-                    { id: 'n6', text: 'Resident state withholds if\nNO withholding in work?', x: 650, y: 200, w: 200, h: 50 },
-                    { id: 'n7', text: 'Neither state withholds.', x: 900, y: 200, w: 180, h: 50, final: true },
-                    { id: 'n8', text: 'Do not withhold in work.\nResident state withholds.', x: 500, y: 300, w: 200, h: 50, final: true },
-                    { id: 'n9', text: 'Neither state withholds.', x: 800, y: 300, w: 180, h: 50, final: true }
+                    { id: 'n1', text: 'Resident state withholds on\nout-of-state wages? (Col 4)', x: 440, y: 0, w: 220, h: 50 },
+                    { id: 'n2', text: 'Work state withholds on\nnonresidents? (Col 3)', x: 220, y: 120, w: 200, h: 50 },
+                    { id: 'n3', text: 'Resident withholds if work state\ndoes not require withholding? (Col 5)', x: 660, y: 120, w: 240, h: 50 },
+                    { id: 'n4', text: 'Withhold in work state.\nResident state withholds on work wages\n(modified by Calc Type Col 6).', x: 60, y: 240, w: 230, h: 60, final: true },
+                    { id: 'n5', text: 'Do not withhold in work state.\nResident state withholds on work wages.', x: 310, y: 240, w: 230, h: 60, final: true },
+                    { id: 'n6', text: 'Work state withholds on\nnonresidents? (Col 3)', x: 680, y: 240, w: 200, h: 50 },
+                    { id: 'n7', text: 'Withhold in work state.\nResident state does NOT withhold.', x: 570, y: 350, w: 220, h: 50, final: true },
+                    { id: 'n8', text: 'Neither work state nor resident state\nwithhold on work state wages.', x: 810, y: 350, w: 220, h: 50, final: true }
                 ],
                 links: [
-                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' },
-                    { from: 'n2', to: 'n4', label: 'YES' }, { from: 'n2', to: 'n5', label: 'NO' },
-                    { from: 'n3', to: 'n6', label: 'YES' }, { from: 'n3', to: 'n7', label: 'NO' },
-                    { from: 'n6', to: 'n8', label: 'YES' }, { from: 'n6', to: 'n9', label: 'NO' }
+                    { from: 'n1', to: 'n2', label: 'YES' },
+                    { from: 'n1', to: 'n3', label: 'NO' },
+                    { from: 'n2', to: 'n4', label: 'YES' },
+                    { from: 'n2', to: 'n5', label: 'NO' },
+                    { from: 'n3', to: 'n6', label: 'YES' },
+                    { from: 'n3', to: 'n8', label: 'NO' },
+                    { from: 'n6', to: 'n7', label: 'YES' },
+                    { from: 'n6', to: 'n5', label: 'NO' }
                 ]
             },
             'norecip-nonexus': {
-                width: 700, height: 180,
+                width: 760, height: 260,
+                title: "No Reciprocal Agreement; No Nexus Flowchart (PDF p. 10 Bottom)",
                 nodes: [
-                    { id: 'n1', text: 'Work state withholds\non nonresidents?', x: 250, y: 0, w: 200, h: 50 },
-                    { id: 'n2', text: 'Withhold in work state.\nResident does NOT withhold.', x: 100, y: 100, w: 200, h: 50, final: true },
-                    { id: 'n3', text: 'Neither state withholds.', x: 400, y: 100, w: 200, h: 50, final: true }
+                    { id: 'n1', text: 'Work state withholds on\nnonresidents? (Col 3)', x: 270, y: 0, w: 220, h: 50 },
+                    { id: 'n2', text: 'Withhold in work state.\nResident state does NOT withhold.', x: 120, y: 140, w: 230, h: 60, final: true },
+                    { id: 'n3', text: 'Neither work state nor resident state\nwithhold on work state wages.', x: 410, y: 140, w: 230, h: 60, final: true }
                 ],
                 links: [
-                    { from: 'n1', to: 'n2', label: 'YES' }, { from: 'n1', to: 'n3', label: 'NO' }
+                    { from: 'n1', to: 'n2', label: 'YES' },
+                    { from: 'n1', to: 'n3', label: 'NO' }
                 ]
             }
         };
 
-        // Form Initialization
-        const resSelect = document.getElementById('residentState');
-        const workSelect = document.getElementById('workState');
-
-        Object.keys(stateMaster).sort().forEach(code => {
-            const label = `${code} - ${stateMaster[code].name}`;
-            resSelect.add(new Option(label, code));
-            workSelect.add(new Option(label, code));
-        });
-        resSelect.value = "IL"; workSelect.value = "MI";
-
-        // SVG Generator for Inner Box
-        function generateInnerSVG(bucketId) {
-            const data = innerFlowchartsData[bucketId];
-            if (!data) return '';
-
-            let pathsHTML = '';
-            let nodesHTML = '';
-
-            data.links.forEach(link => {
-                const fromNode = data.nodes.find(n => n.id === link.from);
-                const toNode = data.nodes.find(n => n.id === link.to);
-
-                const startX = fromNode.x + fromNode.w / 2;
-                const startY = fromNode.y + fromNode.h;
-                const endX = toNode.x + toNode.w / 2;
-                const endY = toNode.y;
-                const midY = startY + (endY - startY) / 2; // Bend exactly in middle
-
-                const labelColor = link.label === 'YES' ? '#16a34a' : (link.label === 'NO' ? '#dc2626' : '#64748b');
-
-                pathsHTML += `
-                    <path id="l-${link.from}-${link.to}" class="inner-path opacity-20 grayscale" 
-                          d="M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}" 
-                          stroke="#94a3b8" stroke-width="3" fill="none" />
-                    <rect x="${(startX + endX) / 2 - 15}" y="${midY - 10}" width="30" height="16" fill="white" rx="4" />
-                    <text x="${(startX + endX) / 2}" y="${midY + 2}" fill="${labelColor}" font-size="10" font-weight="bold" text-anchor="middle">${link.label}</text>
-                `;
-            });
-
-            data.nodes.forEach(n => {
-                const bg = n.final ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-300';
-                nodesHTML += `
-                    <foreignObject x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}">
-                        <div id="${n.id}" class="anim-node opacity-40 grayscale ${bg} w-full h-full flex items-center justify-center border-2 rounded-lg text-xs font-medium text-center px-2 leading-tight text-slate-600 shadow-sm">
-                            ${n.text.replace(/\n/g, '<br>')}
-                        </div>
-                    </foreignObject>
-                `;
-            });
-
-            return `<svg viewBox="0 0 ${data.width} ${data.height}" class="w-full h-auto min-w-[${data.width}px] drop-shadow-sm">${pathsHTML}${nodesHTML}</svg>`;
-        }
-
-        // Logic Engine
+        // =========================================================================
+        // 3. LOGIC & WORKFLOW ENGINE
+        // =========================================================================
         function calculateWorkflow(resCode, workCode, nexusInput, hasNonResCertStr, override, desiredJuris) {
             const resData = stateMaster[resCode];
             const workData = stateMaster[workCode];
@@ -664,24 +817,26 @@
             let innerBucket = null;
             let innerPath = [];
             let overrideMsg = null;
+            let actionNotes = [];
 
             const hasNonResCert = hasNonResCertStr === 'true';
             let nexus = (nexusInput === 'auto') ? (resCode === workCode) : (nexusInput === 'true');
 
-            // Quick bypass
+            // Quick Bypass: Direct Overrides (residentonly, nonresidentonly, zeroinboth)
             if (["residentonly", "nonresidentonly", "zeroinboth"].includes(override)) {
-                overrideMsg = `[OVERRIDE] Setup skipped due to manual state calc override: ${override}`;
+                overrideMsg = `[STATE_CALC_OVERRIDE]: Execution bypassed via parameter override: "${override}"`;
                 if (override === "residentonly") resWithholds = true;
                 if (override === "nonresidentonly") workWithholds = true;
-                return buildPayload(resWithholds, workWithholds, "None", animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+                return buildPayload(resWithholds, workWithholds, "None", animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris, actionNotes);
             }
 
+            // Same State scenario
             if (resCode === workCode) {
-                overrideMsg = "Resident state and Work state are identical. Standard single-state rule applies. Inner flowchart skipped.";
-                return buildPayload(false, workData.hasTax, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+                overrideMsg = "Resident State and Work State are identical. Single-state taxation applies; multi-state evaluation skipped.";
+                return buildPayload(false, workData.hasTax, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris, actionNotes);
             }
 
-            // Top level traversal
+            // Top-Level Traversal: Check Reciprocal Agreement (Col 7)
             animPath.push('path-start-recip', 'node-recip');
             const hasRecip = resData.reciprocal.includes(workCode);
 
@@ -694,26 +849,31 @@
 
                     if (hasNonResCert) {
                         innerPath.push('l-n1-n2', 'n2');
-                        workWithholds = false; resWithholds = true;
+                        workWithholds = false;
+                        resWithholds = true;
+                        actionNotes.push(`Nonresident certificate is on file. Work state (${workCode}) withholding is exempt under reciprocal agreement. Wages shifted to resident state (${resCode}).`);
                     } else {
                         innerPath.push('l-n1-n3', 'n3');
-                        if (workData.withholdsNonres) {
+                        if (resData.withholdsOutState) {
                             innerPath.push('l-n3-n4', 'n4');
-                            if (resData.withholdsOutState) {
+                            if (workData.withholdsNonres) {
                                 innerPath.push('l-n4-n6', 'n6');
-                                workWithholds = true; resWithholds = true;
+                                workWithholds = true;
+                                resWithholds = true;
                             } else {
-                                innerPath.push('l-n4-n7', 'n7');
-                                workWithholds = true; resWithholds = false;
+                                innerPath.push('l-n4-n2', 'n2');
+                                workWithholds = false;
+                                resWithholds = true;
                             }
                         } else {
                             innerPath.push('l-n3-n5', 'n5');
-                            workWithholds = false;
-                            if (resData.withholdsOutState) {
-                                innerPath.push('l-n5-n8', 'n8');
-                                resWithholds = true;
+                            if (resData.withholdsIfNoWork) {
+                                innerPath.push('l-n5-n7', 'n7');
+                                workWithholds = workData.withholdsNonres;
+                                resWithholds = false;
                             } else {
-                                innerPath.push('l-n5-n9', 'n9');
+                                innerPath.push('l-n5-n8', 'n8');
+                                workWithholds = false;
                                 resWithholds = false;
                             }
                         }
@@ -725,15 +885,19 @@
 
                     if (hasNonResCert) {
                         innerPath.push('l-n1-n2', 'n2');
-                        workWithholds = false; resWithholds = false;
+                        workWithholds = false;
+                        resWithholds = false;
+                        actionNotes.push(`Nonresident certificate cannot be utilized because employer lacks nexus in resident state (${resCode}). Neither state withholds.`);
                     } else {
                         innerPath.push('l-n1-n3', 'n3');
                         if (workData.withholdsNonres) {
                             innerPath.push('l-n3-n4', 'n4');
-                            workWithholds = true; resWithholds = false;
+                            workWithholds = true;
+                            resWithholds = false;
                         } else {
                             innerPath.push('l-n3-n5', 'n5');
-                            workWithholds = false; resWithholds = false;
+                            workWithholds = false;
+                            resWithholds = false;
                         }
                     }
                 }
@@ -744,30 +908,33 @@
                     innerBucket = 'norecip-nexus';
                     innerPath.push('n1');
 
-                    if (workData.withholdsNonres) {
+                    if (resData.withholdsOutState) {
                         innerPath.push('l-n1-n2', 'n2');
-                        workWithholds = true;
-                        if (resData.withholdsOutState) {
+                        if (workData.withholdsNonres) {
                             innerPath.push('l-n2-n4', 'n4');
+                            workWithholds = true;
                             resWithholds = true;
                         } else {
                             innerPath.push('l-n2-n5', 'n5');
-                            resWithholds = false;
+                            workWithholds = false;
+                            resWithholds = true;
                         }
                     } else {
                         innerPath.push('l-n1-n3', 'n3');
-                        workWithholds = false;
-                        if (resData.withholdsOutState) {
+                        if (resData.withholdsIfNoWork) {
                             innerPath.push('l-n3-n6', 'n6');
-                            if (resData.withholdsIfNoWork) {
-                                innerPath.push('l-n6-n8', 'n8');
-                                resWithholds = true;
-                            } else {
-                                innerPath.push('l-n6-n9', 'n9');
+                            if (workData.withholdsNonres) {
+                                innerPath.push('l-n6-n7', 'n7');
+                                workWithholds = true;
                                 resWithholds = false;
+                            } else {
+                                innerPath.push('l-n6-n5', 'n5');
+                                workWithholds = false;
+                                resWithholds = true;
                             }
                         } else {
-                            innerPath.push('l-n3-n7', 'n7');
+                            innerPath.push('l-n3-n8', 'n8');
+                            workWithholds = false;
                             resWithholds = false;
                         }
                     }
@@ -778,48 +945,455 @@
 
                     if (workData.withholdsNonres) {
                         innerPath.push('l-n1-n2', 'n2');
-                        workWithholds = true; resWithholds = false;
+                        workWithholds = true;
+                        resWithholds = false;
                     } else {
                         innerPath.push('l-n1-n3', 'n3');
-                        workWithholds = false; resWithholds = false;
+                        workWithholds = false;
+                        resWithholds = false;
                     }
                 }
             }
 
-            // Calculation overrides
-            if (["all", "allWithNoCredit", "difference", "full", "none"].includes(override)) {
-                finalCalcType = override === 'allWithNoCredit' ? 'All with No Credit' : override.charAt(0).toUpperCase() + override.slice(1);
+            // Calculation Type Overrides
+            if (["all", "allWithNoCredit", "difference", "differencedeprecated", "full", "none"].includes(override)) {
+                if (override === "allWithNoCredit") finalCalcType = "All with No Credit";
+                else if (override === "differencedeprecated") finalCalcType = "Difference (Deprecated Pre-2022)";
+                else finalCalcType = override.charAt(0).toUpperCase() + override.slice(1);
             }
 
-            // Tax limits
+            // State Income Tax Existence Limits (Col 2)
             if (!resData.hasTax) resWithholds = false;
             if (!workData.hasTax) workWithholds = false;
 
-            return buildPayload(resWithholds, workWithholds, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris);
+            return buildPayload(resWithholds, workWithholds, finalCalcType, animPath, innerBucket, innerPath, overrideMsg, resCode, workCode, desiredJuris, actionNotes);
         }
 
-        function buildPayload(resW, workW, calc, aPath, iBucket, iPath, oMsg, rCode, wCode, desiredJuris) {
+        function buildPayload(resW, workW, calc, aPath, iBucket, iPath, oMsg, rCode, wCode, desiredJuris, notes) {
             let actualJuris = "none";
             if (resW && workW) actualJuris = "both";
             else if (resW) actualJuris = "resident";
             else if (workW) actualJuris = "work";
 
             return {
-                resWithholds: resW, workWithholds: workW, calcType: calc,
-                animationPath: aPath, innerBucket: iBucket, innerPath: iPath, overrideMsg: oMsg,
-                rCode: rCode, wCode: wCode,
-                isPossible: (actualJuris === desiredJuris), actualJuris: actualJuris
+                resWithholds: resW,
+                workWithholds: workW,
+                calcType: calc,
+                animationPath: aPath,
+                innerBucket: iBucket,
+                innerPath: iPath,
+                overrideMsg: oMsg,
+                rCode: rCode,
+                wCode: wCode,
+                actualJuris: actualJuris,
+                isPossible: (actualJuris === desiredJuris),
+                notes: notes
             };
         }
 
-        // Animation Engine
-        let isAnimating = false;
-        async function runSimulation() {
-            if (isAnimating) return;
-            isAnimating = true;
+        // =========================================================================
+        // 4. INNER SVG FLOWCHART GENERATOR
+        // =========================================================================
+        function generateInnerSVG(bucketId) {
+            const data = innerFlowchartsData[bucketId];
+            if (!data) return '';
 
-            const resCode = document.getElementById('residentState').value;
-            const workCode = document.getElementById('workState').value;
+            document.getElementById('innerFlowTitle').textContent = data.title;
+
+            let pathsHTML = '';
+            let nodesHTML = '';
+
+            data.links.forEach(link => {
+                const fromNode = data.nodes.find(n => n.id === link.from);
+                const toNode = data.nodes.find(n => n.id === link.to);
+
+                const startX = fromNode.x + fromNode.w / 2;
+                const startY = fromNode.y + fromNode.h;
+                const endX = toNode.x + toNode.w / 2;
+                const endY = toNode.y;
+                const midY = startY + (endY - startY) / 2;
+
+                const labelColor = link.label === 'YES' ? '#16a34a' : (link.label === 'NO' ? '#dc2626' : '#64748b');
+
+                pathsHTML += `
+                    <path id="l-${link.from}-${link.to}" class="inner-path opacity-20 grayscale" 
+                          d="M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}" 
+                          stroke="#94a3b8" stroke-width="3" fill="none" />
+                    <rect x="${(startX + endX) / 2 - 16}" y="${midY - 9}" width="32" height="18" fill="white" rx="4" />
+                    <text x="${(startX + endX) / 2}" y="${midY + 4}" fill="${labelColor}" font-size="10" font-weight="bold" text-anchor="middle">${link.label}</text>
+                `;
+            });
+
+            data.nodes.forEach(n => {
+                const bg = n.final ? 'bg-slate-50 border-slate-300' : 'bg-white border-slate-300';
+                nodesHTML += `
+                    <foreignObject x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}">
+                        <div id="${n.id}" class="anim-node opacity-40 grayscale ${bg} w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center px-2 py-1 leading-tight text-slate-700 shadow-xs">
+                            ${n.text.replace(/\n/g, '<br>')}
+                        </div>
+                    </foreignObject>
+                `;
+            });
+
+            return `<svg viewBox="0 0 ${data.width} ${data.height}" class="w-full h-auto min-w-[${data.width}px] drop-shadow-xs">${pathsHTML}${nodesHTML}</svg>`;
+        }
+
+        // =========================================================================
+        // 5. NUMERIC TAX DOLLAR CALCULATION ENGINE (PDF pp. 11-16)
+        // =========================================================================
+        function updateTaxCalculations(calcType, resCode, workCode, resWithholds, workWithholds) {
+            const container = document.getElementById('mathStepsContainer');
+            if (!container) return;
+
+            const wRes = parseFloat(document.getElementById('calcWageRes').value) || 0;
+            const wWork = parseFloat(document.getElementById('calcWageWork').value) || 0;
+            const rRes = (parseFloat(document.getElementById('calcRateRes').value) || 0) / 100.0;
+            const rWork = (parseFloat(document.getElementById('calcRateWork').value) || 0) / 100.0;
+            const wTotal = wRes + wWork;
+
+            // Work tax
+            const tWorkCalculated = workWithholds ? (wWork * rWork) : 0;
+
+            let stepsHTML = '';
+            let tResFinal = 0;
+
+            // Normalize calcType
+            const normalizedType = calcType.toLowerCase();
+
+            if (!resWithholds && !workWithholds) {
+                stepsHTML = `
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                        Neither Resident State nor Work State withholds tax under the active configuration. Total withholding is <strong>$0.00</strong>.
+                    </div>
+                `;
+                container.innerHTML = stepsHTML;
+                return;
+            }
+
+            if (!resWithholds && workWithholds) {
+                stepsHTML = `
+                    <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 space-y-2">
+                        <div class="font-bold text-sm">Work State Only Withholding</div>
+                        <p>Work State (${workCode}) tax on work wages ($${wWork.toFixed(2)} @ ${(rWork*100).toFixed(2)}%): <strong>$${tWorkCalculated.toFixed(2)}</strong>.</p>
+                        <p>Resident State (${resCode}) does not withhold. Resident tax: <strong>$0.00</strong>.</p>
+                    </div>
+                `;
+                container.innerHTML = stepsHTML;
+                return;
+            }
+
+            if (resWithholds && !workWithholds) {
+                const tResAll = wTotal * rRes;
+                stepsHTML = `
+                    <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-2">
+                        <div class="font-bold text-sm">Resident State Reciprocal Shift (Work Exempt)</div>
+                        <p>Nonresident certificate or rule exempted Work State (${workCode}). All wages ($${wTotal.toFixed(2)}) moved to Resident State (${resCode}).</p>
+                        <p>Resident State tax on total wages ($${wTotal.toFixed(2)} @ ${(rRes*100).toFixed(2)}%): <strong>$${tResAll.toFixed(2)}</strong>.</p>
+                    </div>
+                `;
+                container.innerHTML = stepsHTML;
+                return;
+            }
+
+            // Both withhold: evaluate according to Symmetry Calculation Type (PDF pp. 11-16)
+            if (normalizedType.includes("all with no credit")) {
+                const tResOnAll = wTotal * rRes;
+                tResFinal = tResOnAll;
+                stepsHTML = `
+                    <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-3 text-xs">
+                        <div class="flex justify-between items-center border-b border-blue-200 pb-2">
+                            <span class="font-bold text-blue-900 text-sm">"All with No Credit" Calculation (PDF p. 12)</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-200 text-blue-800 font-bold">STE Standard</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                            <li>Compute Work State (${workCode}) tax on work wages: <code>$${wWork.toFixed(2)} × ${(rWork*100).toFixed(2)}% = $${tWorkCalculated.toFixed(2)}</code></li>
+                            <li>Find total combined wages in all states: <code>$${wRes.toFixed(2)} + $${wWork.toFixed(2)} = $${wTotal.toFixed(2)}</code></li>
+                            <li>Compute Resident State (${resCode}) tax on all wages ($${wTotal.toFixed(2)}): <code>$${tResOnAll.toFixed(2)}</code></li>
+                            <li><strong>No Credit:</strong> Resident state does not reduce for work state tax. Resident tax withheld: <strong>$${tResFinal.toFixed(2)}</strong></li>
+                        </ol>
+                        <div class="pt-2 border-t border-blue-200 flex flex-wrap gap-4 font-bold text-slate-900">
+                            <span>Work State Withheld: $${tWorkCalculated.toFixed(2)}</span>
+                            <span>Resident State Withheld: $${tResFinal.toFixed(2)}</span>
+                            <span>Combined SIT Withheld: $${(tWorkCalculated + tResFinal).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (normalizedType.includes("all")) {
+                const tResOnAll = wTotal * rRes;
+                tResFinal = Math.max(0, tResOnAll - tWorkCalculated);
+                stepsHTML = `
+                    <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-3 text-xs">
+                        <div class="flex justify-between items-center border-b border-blue-200 pb-2">
+                            <span class="font-bold text-blue-900 text-sm">"All" Calculation Type (PDF pp. 11–12)</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-200 text-blue-800 font-bold">Credit Offset</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                            <li>Compute Work State (${workCode}) tax on work wages ($${wWork.toFixed(2)}): <code>$${tWorkCalculated.toFixed(2)}</code></li>
+                            <li>Find total combined wages in all states: <code>$${wRes.toFixed(2)} + $${wWork.toFixed(2)} = $${wTotal.toFixed(2)}</code></li>
+                            <li>Compute Resident State (${resCode}) tax on total combined wages ($${wTotal.toFixed(2)}): <code>$${tResOnAll.toFixed(2)}</code></li>
+                            <li>Reduce Resident tax by Work tax credit: <code>$${tResOnAll.toFixed(2)} - $${tWorkCalculated.toFixed(2)} = $${tResFinal.toFixed(2)}</code></li>
+                        </ol>
+                        <div class="pt-2 border-t border-blue-200 flex flex-wrap gap-4 font-bold text-slate-900">
+                            <span>Work State Withheld: $${tWorkCalculated.toFixed(2)}</span>
+                            <span>Resident State Withheld: $${tResFinal.toFixed(2)}</span>
+                            <span>Combined SIT Withheld: $${(tWorkCalculated + tResFinal).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (normalizedType.includes("difference")) {
+                const tResOnRes = wRes * rRes;
+                const tResOnWork = wWork * rRes;
+                const diff = Math.max(0, tResOnWork - tWorkCalculated);
+                tResFinal = tResOnRes + diff;
+                stepsHTML = `
+                    <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-3 text-xs">
+                        <div class="flex justify-between items-center border-b border-amber-200 pb-2">
+                            <span class="font-bold text-amber-900 text-sm">"Difference" Calculation Type (PDF pp. 13–14)</span>
+                            <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-800 font-bold">Excess Differential</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                            <li>Compute Work State (${workCode}) tax on work wages: <code>$${wWork.toFixed(2)} × ${(rWork*100).toFixed(2)}% = $${tWorkCalculated.toFixed(2)}</code></li>
+                            <li>Compute Resident State (${resCode}) tax on resident wages only ($${wRes.toFixed(2)}): <code>$${tResOnRes.toFixed(2)}</code></li>
+                            <li>Compute Resident State tax on work wages as if earned in ${resCode} ($${wWork.toFixed(2)}): <code>$${tResOnWork.toFixed(2)}</code></li>
+                            <li>Compare: If Work tax ($${tWorkCalculated.toFixed(2)}) is less than Resident tax on those wages ($${tResOnWork.toFixed(2)}), add difference:
+                                <code>$${tResOnWork.toFixed(2)} - $${tWorkCalculated.toFixed(2)} = $${diff.toFixed(2)}</code>. Resident tax: <code>$${tResOnRes.toFixed(2)} + $${diff.toFixed(2)} = $${tResFinal.toFixed(2)}</code>.
+                            </li>
+                        </ol>
+                        <div class="pt-2 border-t border-amber-200 flex flex-wrap gap-4 font-bold text-slate-900">
+                            <span>Work State Withheld: $${tWorkCalculated.toFixed(2)}</span>
+                            <span>Resident State Withheld: $${tResFinal.toFixed(2)}</span>
+                            <span>Combined SIT Withheld: $${(tWorkCalculated + tResFinal).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (normalizedType.includes("full")) {
+                const tResOnRes = wRes * rRes;
+                const tResOnWork = wWork * rRes;
+                tResFinal = tResOnRes + tResOnWork;
+                stepsHTML = `
+                    <div class="p-4 rounded-xl border border-purple-200 bg-purple-50/50 space-y-3 text-xs">
+                        <div class="flex justify-between items-center border-b border-purple-200 pb-2">
+                            <span class="font-bold text-purple-900 text-sm">"Full" Calculation Type (PDF pp. 14–15)</span>
+                            <span class="px-2 py-0.5 rounded bg-purple-200 text-purple-800 font-bold">Additive Both</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                            <li>Compute Work State (${workCode}) tax on work wages ($${wWork.toFixed(2)}): <code>$${tWorkCalculated.toFixed(2)}</code></li>
+                            <li>Compute Resident State (${resCode}) tax on resident wages ($${wRes.toFixed(2)}): <code>$${tResOnRes.toFixed(2)}</code></li>
+                            <li>Compute Resident State tax on work wages ($${wWork.toFixed(2)}): <code>$${tResOnWork.toFixed(2)}</code></li>
+                            <li>Add resident parts together: <code>$${tResOnRes.toFixed(2)} + $${tResOnWork.toFixed(2)} = $${tResFinal.toFixed(2)}</code></li>
+                        </ol>
+                        <div class="pt-2 border-t border-purple-200 flex flex-wrap gap-4 font-bold text-slate-900">
+                            <span>Work State Withheld: $${tWorkCalculated.toFixed(2)}</span>
+                            <span>Resident State Withheld: $${tResFinal.toFixed(2)}</span>
+                            <span>Combined SIT Withheld: $${(tWorkCalculated + tResFinal).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // "None" calculation
+                tResFinal = wRes * rRes;
+                stepsHTML = `
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3 text-xs">
+                        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                            <span class="font-bold text-slate-900 text-sm">"None" Calculation Type (PDF pp. 15–16)</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">Independent Isolation</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+                            <li>Work State (${workCode}) tax calculated strictly on work wages ($${wWork.toFixed(2)}): <code>$${tWorkCalculated.toFixed(2)}</code></li>
+                            <li>Resident State (${resCode}) tax calculated strictly on resident wages ($${wRes.toFixed(2)}): <code>$${tResFinal.toFixed(2)}</code></li>
+                            <li>No interaction or cross-state credit between jurisdictions.</li>
+                        </ol>
+                        <div class="pt-2 border-t border-slate-200 flex flex-wrap gap-4 font-bold text-slate-900">
+                            <span>Work State Withheld: $${tWorkCalculated.toFixed(2)}</span>
+                            <span>Resident State Withheld: $${tResFinal.toFixed(2)}</span>
+                            <span>Combined SIT Withheld: $${(tWorkCalculated + tResFinal).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = stepsHTML;
+        }
+
+        // =========================================================================
+        // 6. RADIO SELECTION VISUAL INDICATION ENGINE
+        // =========================================================================
+        function updateRadioVisuals() {
+            // Nexus group
+            document.querySelectorAll('#nexusRadioGroup label').forEach(label => {
+                const input = label.querySelector('input');
+                const dot = label.querySelector('.indicator-dot');
+                
+                label.classList.remove('selected');
+                if (input.checked) {
+                    label.classList.add('selected');
+                    if (input.value === 'auto') {
+                        dot.className = 'indicator-dot w-3 h-3 rounded-full bg-blue-600 border-2 border-blue-600 shadow-xs flex items-center justify-center';
+                        dot.innerHTML = '<span class="w-1 h-1 rounded-full bg-white"></span>';
+                    } else if (input.value === 'true') {
+                        dot.className = 'indicator-dot w-3 h-3 rounded-full bg-emerald-600 border-2 border-emerald-600 shadow-xs flex items-center justify-center';
+                        dot.innerHTML = '<span class="w-1 h-1 rounded-full bg-white"></span>';
+                    } else if (input.value === 'false') {
+                        dot.className = 'indicator-dot w-3 h-3 rounded-full bg-rose-600 border-2 border-rose-600 shadow-xs flex items-center justify-center';
+                        dot.innerHTML = '<span class="w-1 h-1 rounded-full bg-white"></span>';
+                    }
+                } else {
+                    dot.className = 'indicator-dot w-3 h-3 rounded-full border-2 border-slate-300 flex items-center justify-center';
+                    dot.innerHTML = '';
+                }
+            });
+
+            // Jurisdiction group
+            document.querySelectorAll('#jurisRadioGroup label').forEach(label => {
+                const input = label.querySelector('input');
+                const dot = label.querySelector('.indicator-dot');
+                
+                label.classList.remove('selected');
+                if (input.checked) {
+                    label.classList.add('selected');
+                    dot.className = 'indicator-dot w-3.5 h-3.5 rounded-full bg-indigo-600 border-2 border-indigo-600 shadow-xs flex items-center justify-center';
+                    dot.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-white"></span>';
+                } else {
+                    dot.className = 'indicator-dot w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex items-center justify-center';
+                    dot.innerHTML = '';
+                }
+            });
+        }
+
+        // Attach listeners to radio groups
+        document.querySelectorAll('input[name="nexusToggle"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                updateRadioVisuals();
+                executeEvaluation(true);
+            });
+        });
+
+        document.querySelectorAll('input[name="desiredJuris"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                updateRadioVisuals();
+                executeEvaluation(true);
+            });
+        });
+
+        document.querySelectorAll('.custom-radio-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const radio = card.querySelector('input[type="radio"]');
+                if (radio && !radio.checked) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+
+        // =========================================================================
+        // 7. UI POPULATION & STATUTORY NOTICES
+        // =========================================================================
+        const resSelect = document.getElementById('residentState');
+        const workSelect = document.getElementById('workState');
+
+        Object.keys(stateMaster).sort().forEach(code => {
+            const label = `${code} - ${stateMaster[code].name}`;
+            resSelect.add(new Option(label, code));
+            workSelect.add(new Option(label, code));
+        });
+
+        // Default scenario: IL resident, MI work (Classic Reciprocal Pair)
+        resSelect.value = "IL";
+        workSelect.value = "MI";
+
+        function updateStateSummaries() {
+            const rCode = resSelect.value;
+            const wCode = workSelect.value;
+            const rData = stateMaster[rCode];
+            const wData = stateMaster[wCode];
+
+            document.getElementById('resStateSummary').textContent = 
+                `Tax: ${rData.hasTax ? 'YES' : 'NO'} | Out-State: ${rData.withholdsOutState ? 'YES' : 'NO'} | Calc: ${rData.calcType}`;
+
+            document.getElementById('workStateSummary').textContent = 
+                `Tax: ${wData.hasTax ? 'YES' : 'NO'} | Nonres: ${wData.withholdsNonres ? 'YES' : 'NO'} | Recip Count: ${wData.reciprocal.length}`;
+
+            // Reciprocal badge
+            const isRecip = rData.reciprocal.includes(wCode);
+            const recipBadge = document.getElementById('recipStatusTag');
+            const previewCard = document.getElementById('reciprocityPreviewBadge');
+
+            if (isRecip) {
+                recipBadge.textContent = `YES (Reciprocal Pair)`;
+                recipBadge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200`;
+                previewCard.className = `p-3 rounded-xl border text-xs font-medium flex items-center justify-between bg-green-50/50 border-green-100 text-green-900`;
+            } else {
+                recipBadge.textContent = `NO (Non-Reciprocal)`;
+                recipBadge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200`;
+                previewCard.className = `p-3 rounded-xl border text-xs font-medium flex items-center justify-between bg-slate-50 border-slate-100 text-slate-700`;
+            }
+
+            // Statutory Alerts (Kansas, Illinois, Arizona)
+            const alertBox = document.getElementById('specialStatutoryAlert');
+            alertBox.innerHTML = '';
+            alertBox.classList.add('hidden');
+
+            if (rCode === 'KS' || wCode === 'KS') {
+                alertBox.classList.remove('hidden');
+                alertBox.className = 'p-3 rounded-xl text-xs border bg-amber-50 border-amber-200 text-amber-900 space-y-1';
+                alertBox.innerHTML = `
+                    <div class="font-bold flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Kansas Statutory Apportionment Rule (PDF p. 18)
+                    </div>
+                    <p>When employees work both inside and outside Kansas, KS tax is computed on total combined wages and apportioned by the percentage earned in KS. The credit is treated as "None" (not modified by out-of-state tax).</p>
+                `;
+            } else if (rCode === 'IL') {
+                alertBox.classList.remove('hidden');
+                alertBox.className = 'p-3 rounded-xl text-xs border bg-blue-50 border-blue-200 text-blue-900 space-y-1';
+                alertBox.innerHTML = `
+                    <div class="font-bold flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Illinois Box 16 Subject Wages (Pub 130, PDF p. 17)
+                    </div>
+                    <p>Report $0 in Box 16 for out-of-state wages from non-reciprocal states even if IL tax is withheld. Out-of-state wages are only subject wages if moved under reciprocal certificate (IA, KY, MI, WI).</p>
+                `;
+            } else if ((rCode === 'AZ' || wCode === 'AZ') && ['CA', 'IN', 'OR', 'VA'].includes(rCode === 'AZ' ? wCode : rCode)) {
+                alertBox.classList.remove('hidden');
+                alertBox.className = 'p-3 rounded-xl text-xs border bg-teal-50 border-teal-200 text-teal-900 space-y-1';
+                alertBox.innerHTML = `
+                    <div class="font-bold flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Arizona Form WEC Exemption (PDF p. 7)
+                    </div>
+                    <p>Functionally equivalent to reciprocity within the STE. AZ Form WEC exempts residents of CA, IN, OR, and VA working in Arizona.</p>
+                `;
+            }
+        }
+
+        resSelect.addEventListener('change', () => {
+            updateStateSummaries();
+            executeEvaluation(true);
+        });
+
+        workSelect.addEventListener('change', () => {
+            updateStateSummaries();
+            executeEvaluation(true);
+        });
+
+        document.getElementById('nonResCert').addEventListener('change', () => {
+            executeEvaluation(true);
+        });
+
+        document.getElementById('calcOverride').addEventListener('change', () => {
+            executeEvaluation(true);
+        });
+
+        // =========================================================================
+        // 8. UNIFIED EVALUATION & ANIMATION EXECUTION LOOP
+        // =========================================================================
+        let isAnimating = false;
+
+        async function executeEvaluation(instant = false) {
+            if (isAnimating && !instant) return;
+
+            const resCode = resSelect.value;
+            const workCode = workSelect.value;
             const nexus = document.querySelector('input[name="nexusToggle"]:checked').value;
             const cert = document.getElementById('nonResCert').value;
             const desired = document.querySelector('input[name="desiredJuris"]:checked').value;
@@ -828,15 +1402,9 @@
 
             const result = calculateWorkflow(resCode, workCode, nexus, cert, override, desired);
 
-            // 1. Reset UI
-            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Simulating...`;
-            btn.disabled = true;
-            document.getElementById('final-results-panel').classList.add('opacity-0');
-            document.getElementById('inner-logic-panel').classList.add('hidden');
-
-            // Clear top SVG
+            // 1. Reset Top Flowchart visuals
             document.querySelectorAll('.anim-node').forEach(el => {
-                el.className = 'anim-node opacity-60 border-slate-400 text-slate-600 bg-white w-full h-full flex items-center justify-center border-2 rounded-lg text-sm font-semibold tracking-wide text-center p-2';
+                el.className = 'anim-node opacity-60 border-slate-300 text-slate-700 bg-white w-full h-full flex items-center justify-center border-2 rounded-xl text-xs font-semibold text-center p-2 shadow-xs';
             });
             document.querySelectorAll('.anim-bucket').forEach(el => {
                 const bClass = Array.from(el.classList).filter(c => !['bucket-active', 'opacity-100', 'grayscale-0'].includes(c)).join(' ');
@@ -844,27 +1412,51 @@
             });
             document.querySelectorAll('.anim-path').forEach(el => el.classList.remove('path-active'));
 
-            await new Promise(r => setTimeout(r, 100));
+            if (!instant) {
+                isAnimating = true;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Traversing Flowchart...`;
+                btn.disabled = true;
 
-            // 2. Animate Top Level 
-            for (const id of result.animationPath) {
-                const el = document.getElementById(id);
-                if (!el) continue;
+                document.getElementById('flowStatusBadge').textContent = "Traversing...";
+                document.getElementById('flowStatusBadge').className = "px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 animate-pulse";
+                document.getElementById('flowPulseIndicator').className = "w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse";
 
-                if (el.tagName === 'path') {
-                    el.classList.add('path-active');
-                } else if (el.classList.contains('anim-bucket')) {
-                    el.classList.remove('opacity-40', 'grayscale');
-                    el.classList.add('bucket-active', 'opacity-100', 'grayscale-0');
-                } else {
-                    el.classList.remove('opacity-50', 'border-slate-300', 'text-slate-500');
-                    el.classList.add('node-active');
+                await new Promise(r => setTimeout(r, 100));
+
+                // Stepped Animation for Top SVG
+                for (const id of result.animationPath) {
+                    const el = document.getElementById(id);
+                    if (!el) continue;
+
+                    if (el.tagName === 'path') {
+                        el.classList.add('path-active');
+                    } else if (el.classList.contains('anim-bucket')) {
+                        el.classList.remove('opacity-40', 'grayscale');
+                        el.classList.add('bucket-active', 'opacity-100', 'grayscale-0');
+                    } else {
+                        el.classList.remove('opacity-60', 'border-slate-300', 'text-slate-700');
+                        el.classList.add('node-active');
+                    }
+                    await new Promise(r => setTimeout(r, 160));
                 }
-                await new Promise(r => setTimeout(r, 200));
+            } else {
+                // Instant Visual Highlighting for Top SVG
+                result.animationPath.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (el.tagName === 'path') {
+                        el.classList.add('path-active');
+                    } else if (el.classList.contains('anim-bucket')) {
+                        el.classList.remove('opacity-40', 'grayscale');
+                        el.classList.add('bucket-active', 'opacity-100', 'grayscale-0');
+                    } else {
+                        el.classList.remove('opacity-60', 'border-slate-300', 'text-slate-700');
+                        el.classList.add('node-active');
+                    }
+                });
             }
 
-            // 3. Animate Inner Logic
-            document.getElementById('inner-logic-panel').classList.remove('hidden');
+            // 2. Sub-Tree SVG Generation & Highlighting
             const innerSvgBox = document.getElementById('inner-svg-container');
             const innerTextStatus = document.getElementById('inner-text-status');
 
@@ -872,92 +1464,173 @@
                 innerTextStatus.classList.add('hidden');
                 innerSvgBox.innerHTML = generateInnerSVG(result.innerBucket);
 
-                // Animate Inner Paths/Nodes
-                for (const innerId of result.innerPath) {
-                    await new Promise(r => setTimeout(r, 200));
-                    const innerEl = document.getElementById(innerId);
-                    if (!innerEl) continue;
+                if (!instant) {
+                    for (const innerId of result.innerPath) {
+                        await new Promise(r => setTimeout(r, 160));
+                        const innerEl = document.getElementById(innerId);
+                        if (!innerEl) continue;
 
-                    if (innerEl.tagName === 'path') {
-                        innerEl.classList.add('inner-path-active');
-                    } else {
-                        // Check if it's a final node
-                        const isFinal = innerFlowchartsData[result.innerBucket].nodes.find(n => n.id === innerId).final;
-                        innerEl.classList.remove('opacity-40', 'grayscale', 'border-slate-300', 'bg-white', 'bg-slate-100');
-                        innerEl.classList.add(isFinal ? 'inner-final-active' : 'inner-node-active');
+                        if (innerEl.tagName === 'path') {
+                            innerEl.classList.add('inner-path-active');
+                        } else {
+                            const isFinal = innerFlowchartsData[result.innerBucket].nodes.find(n => n.id === innerId).final;
+                            innerEl.classList.remove('opacity-40', 'grayscale', 'border-slate-300', 'bg-white', 'bg-slate-50');
+                            innerEl.classList.add(isFinal ? 'inner-final-active' : 'inner-node-active');
+                        }
                     }
+                } else {
+                    result.innerPath.forEach(innerId => {
+                        const innerEl = document.getElementById(innerId);
+                        if (!innerEl) return;
+                        if (innerEl.tagName === 'path') {
+                            innerEl.classList.add('inner-path-active');
+                        } else {
+                            const isFinal = innerFlowchartsData[result.innerBucket].nodes.find(n => n.id === innerId).final;
+                            innerEl.classList.remove('opacity-40', 'grayscale', 'border-slate-300', 'bg-white', 'bg-slate-50');
+                            innerEl.classList.add(isFinal ? 'inner-final-active' : 'inner-node-active');
+                        }
+                    });
                 }
-                await new Promise(r => setTimeout(r, 150));
             } else {
                 innerSvgBox.innerHTML = '';
-                innerTextStatus.textContent = result.overrideMsg || "Inner Logic skipped.";
+                innerTextStatus.textContent = result.overrideMsg || "Inner sub-flow skipped.";
                 innerTextStatus.classList.remove('hidden');
-                await new Promise(r => setTimeout(r, 200));
             }
 
-            // 4. Reveal Final Output Data
+            // 3. Update Result Cards
             document.getElementById('resNameOut').textContent = stateMaster[resCode].name;
             document.getElementById('workNameOut').textContent = stateMaster[workCode].name;
 
             const resWText = document.getElementById('resWithholdsOut');
             resWText.textContent = result.resWithholds ? "YES" : "NO";
-            resWText.className = result.resWithholds ? "text-green-600 font-bold" : "text-red-600 font-bold";
+            resWText.className = result.resWithholds ? "text-green-600 font-bold" : "text-rose-600 font-bold";
 
             const workWText = document.getElementById('workWithholdsOut');
             workWText.textContent = result.workWithholds ? "YES" : "NO";
-            workWText.className = result.workWithholds ? "text-green-600 font-bold" : "text-red-600 font-bold";
+            workWText.className = result.workWithholds ? "text-green-600 font-bold" : "text-rose-600 font-bold";
 
             document.getElementById('resCalcTypeOut').textContent = result.resWithholds ? result.calcType : "N/A";
-            document.getElementById('workRecipOut').textContent = stateMaster[resCode].reciprocal.includes(workCode) ? "YES" : "NO";
+            document.getElementById('resOutStateOut').textContent = stateMaster[resCode].withholdsOutState ? "YES" : "NO";
 
-            document.getElementById('resCard').className = `rounded-lg border-2 p-4 transition-colors ${result.resWithholds ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`;
-            document.getElementById('workCard').className = `rounded-lg border-2 p-4 transition-colors ${result.workWithholds ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`;
+            document.getElementById('workRecipOut').textContent = stateMaster[resCode].reciprocal.includes(workCode) ? "YES" : "NO";
+            document.getElementById('workNonresOut').textContent = stateMaster[workCode].withholdsNonres ? "YES" : "NO";
+
+            document.getElementById('resCard').className = `rounded-xl border-2 p-5 transition-colors ${result.resWithholds ? 'border-green-300 bg-green-50/30' : 'border-rose-200 bg-rose-50/30'}`;
+            document.getElementById('workCard').className = `rounded-xl border-2 p-5 transition-colors ${result.workWithholds ? 'border-green-300 bg-green-50/30' : 'border-rose-200 bg-rose-50/30'}`;
 
             document.getElementById('resBadge').textContent = result.resWithholds ? "Withholding Applies" : "Exempt / No Tax";
-            document.getElementById('resBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.resWithholds ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            document.getElementById('resBadge').className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${result.resWithholds ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`;
+
             document.getElementById('workBadge').textContent = result.workWithholds ? "Withholding Applies" : "Exempt / No Tax";
-            document.getElementById('workBadge').className = `px-2 py-0.5 rounded text-xs font-bold ${result.workWithholds ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            document.getElementById('workBadge').className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${result.workWithholds ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`;
 
             const jurisBanner = document.getElementById('jurisdictionResult');
             if (result.isPossible) {
-                jurisBanner.textContent = `✓ Desired Jurisdiction MATCHED`;
-                jurisBanner.className = "px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700 border border-green-200 shadow-sm";
+                jurisBanner.textContent = `✓ Desired Jurisdiction MATCHED (${result.actualJuris.toUpperCase()})`;
+                jurisBanner.className = "px-3.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200 shadow-xs";
             } else {
-                jurisBanner.textContent = `✗ Expected: ${result.actualJuris.toUpperCase()} (Mismatch)`;
-                jurisBanner.className = "px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-700 border border-amber-200 shadow-sm";
+                jurisBanner.textContent = `✗ Actual: ${result.actualJuris.toUpperCase()} (Mismatch with Desired)`;
+                jurisBanner.className = "px-3.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-xs";
             }
 
-            document.getElementById('final-results-panel').classList.remove('opacity-0');
+            const notesBox = document.getElementById('resultActionNotes');
+            if (result.notes && result.notes.length > 0) {
+                notesBox.innerHTML = result.notes.map(n => `<p>• ${n}</p>`).join('');
+                notesBox.classList.remove('hidden');
+            } else {
+                notesBox.classList.add('hidden');
+            }
 
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg><span>Run Animated Simulation</span>`;
+            // 4. Update Math Engine & Status Badges
+            updateTaxCalculations(result.calcType, resCode, workCode, result.resWithholds, result.workWithholds);
+
+            document.getElementById('flowStatusBadge').textContent = instant ? "Live Reactive Mode" : "Traversal Completed";
+            document.getElementById('flowStatusBadge').className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700";
+            document.getElementById('flowPulseIndicator').className = "w-2.5 h-2.5 rounded-full bg-green-600";
+
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg><span>Run Animated Simulation</span>`;
             btn.disabled = false;
             isAnimating = false;
         }
 
-        document.getElementById('simulateBtn').addEventListener('click', runSimulation);
+        document.getElementById('simulateBtn').addEventListener('click', () => executeEvaluation(false));
 
-        // UI Interaction Logic
+        // Wage Input listeners to live-refresh math calculation
+        ['calcWageRes', 'calcWageWork', 'calcRateRes', 'calcRateWork'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                const calcType = document.getElementById('resCalcTypeOut').textContent || 'None';
+                const resW = document.getElementById('resWithholdsOut').textContent === 'YES';
+                const workW = document.getElementById('workWithholdsOut').textContent === 'YES';
+                updateTaxCalculations(calcType, resSelect.value, workSelect.value, resW, workW);
+            });
+        });
+
+        // =========================================================================
+        // 9. SIDEBAR COLLAPSE & MODAL CONTROLS
+        // =========================================================================
         const sidebarColumn = document.getElementById('sidebarColumn');
-        const mainColumn = document.getElementById('mainColumn');
         const collapseSidebarBtn = document.getElementById('collapseSidebarBtn');
         const expandSidebarBtn = document.getElementById('expandSidebarBtn');
 
         function toggleSidebar(collapse) {
             if (collapse) {
-                // Hide sidebar by sliding out left
-                sidebarColumn.classList.add('-ml-80', 'lg:-ml-[400px]');
-                // Show expand button
+                sidebarColumn.classList.add('-ml-80', 'lg:-ml-[420px]');
                 expandSidebarBtn.classList.remove('hidden');
             } else {
-                // Show sidebar
-                sidebarColumn.classList.remove('-ml-80', 'lg:-ml-[400px]');
-                // Hide expand button
+                sidebarColumn.classList.remove('-ml-80', 'lg:-ml-[420px]');
                 expandSidebarBtn.classList.add('hidden');
             }
         }
 
         collapseSidebarBtn.addEventListener('click', () => toggleSidebar(true));
         expandSidebarBtn.addEventListener('click', () => toggleSidebar(false));
+
+        // Reference Modal
+        const refModal = document.getElementById('referenceModal');
+        const openRefBtn = document.getElementById('openReferenceModalBtn');
+        const closeRefBtn = document.getElementById('closeReferenceModalBtn');
+        const tableBody = document.getElementById('modalTableBody');
+        const searchInput = document.getElementById('modalSearchInput');
+
+        function renderModalTable(filterText = '') {
+            const f = filterText.toLowerCase();
+            let rows = '';
+            Object.keys(stateMaster).sort().forEach(code => {
+                const d = stateMaster[code];
+                if (f && !code.toLowerCase().includes(f) && !d.name.toLowerCase().includes(f) && !d.calcType.toLowerCase().includes(f)) {
+                    return;
+                }
+                const recipStr = d.reciprocal.length > 0 ? d.reciprocal.join(', ') : 'None';
+                rows += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-2.5 font-mono-code font-bold text-slate-800">${code}</td>
+                        <td class="p-2.5 font-medium">${d.name}</td>
+                        <td class="p-2.5 text-center font-bold ${d.hasTax ? 'text-green-600' : 'text-slate-400'}">${d.hasTax ? 'Yes' : 'No'}</td>
+                        <td class="p-2.5 text-center font-bold ${d.withholdsNonres ? 'text-green-600' : 'text-slate-400'}">${d.withholdsNonres ? 'Yes' : 'No'}</td>
+                        <td class="p-2.5 text-center font-bold ${d.withholdsOutState ? 'text-green-600' : 'text-slate-400'}">${d.withholdsOutState ? 'Yes' : 'No'}</td>
+                        <td class="p-2.5 text-center font-bold ${d.withholdsIfNoWork ? 'text-green-600' : 'text-slate-400'}">${d.withholdsIfNoWork ? 'Yes' : 'No'}</td>
+                        <td class="p-2.5 font-mono-code text-[11px] font-semibold text-slate-700">${d.calcType}</td>
+                        <td class="p-2.5 text-[11px] text-slate-600">${recipStr}</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = rows;
+        }
+
+        openRefBtn.addEventListener('click', () => {
+            renderModalTable();
+            refModal.classList.remove('hidden');
+        });
+        closeRefBtn.addEventListener('click', () => refModal.classList.add('hidden'));
+        refModal.addEventListener('click', (e) => {
+            if (e.target === refModal) refModal.classList.add('hidden');
+        });
+        searchInput.addEventListener('input', (e) => renderModalTable(e.target.value));
+
+        // Initial setup on page load
+        updateRadioVisuals();
+        updateStateSummaries();
+        executeEvaluation(true);
 
     </script>
 </body>
